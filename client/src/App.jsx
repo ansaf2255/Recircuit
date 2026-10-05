@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -11,6 +12,7 @@ import ResultPage from './pages/ResultPage';
 import ComponentAssessmentPage from './pages/ComponentAssessmentPage';
 import ComponentResultsPage from './pages/ComponentResultsPage';
 import RequestsPage from './pages/RequestsPage';
+import MatchPage from './pages/MatchPage';
 import AdminPage from './pages/AdminPage';
 
 function AppRoutes() {
@@ -62,6 +64,10 @@ function AppRoutes() {
             <ProtectedRoute><ComponentResultsPage /></ProtectedRoute>
           } />
 
+          <Route path="/devices/:deviceId/match" element={
+            <ProtectedRoute><MatchPage /></ProtectedRoute>
+          } />
+
           <Route path="/requests" element={
             <ProtectedRoute><RequestsPage /></ProtectedRoute>
           } />
@@ -82,9 +88,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

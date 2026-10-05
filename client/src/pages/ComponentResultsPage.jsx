@@ -70,45 +70,57 @@ export default function ComponentResultsPage() {
         </div>
       </div>
 
-      {/* Results Table */}
-      <div className="glass-card overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left py-4 px-6 text-sm font-semibold text-text-secondary">Component</th>
-              <th className="text-left py-4 px-6 text-sm font-semibold text-text-secondary">Status</th>
-              <th className="text-left py-4 px-6 text-sm font-semibold text-text-secondary hidden sm:table-cell">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {results.map((r) => (
-              <tr key={r.id} className="border-b border-border/50 hover:bg-surface-light/50 transition-colors">
-                <td className="py-4 px-6">
-                  <span className="font-medium text-text-primary">{r.component_name}</span>
-                </td>
-                <td className="py-4 px-6">
-                  {r.result === 'reusable' ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium">
-                      <HiOutlineCheckCircle className="w-4 h-4" />
-                      Reusable
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium">
-                      <HiOutlineTrash className="w-4 h-4" />
-                      Recycle
-                    </span>
-                  )}
-                </td>
-                <td className="py-4 px-6 hidden sm:table-cell">
-                  <p className="text-sm text-text-muted line-clamp-2">
-                    {r.reasoning?.split('\n')[0]}
-                  </p>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Reusable Parts */}
+      {results.filter(r => r.result === 'reusable').length > 0 && (
+        <div className="glass-card overflow-hidden mb-6 border-emerald-500/20">
+          <div className="bg-emerald-500/10 px-6 py-3 border-b border-emerald-500/20">
+            <h2 className="text-emerald-400 font-semibold flex items-center gap-2">
+              <HiOutlineCheckCircle className="w-5 h-5" />
+              Reusable Parts
+            </h2>
+          </div>
+          <table className="w-full">
+            <tbody>
+              {results.filter(r => r.result === 'reusable').map((r) => (
+                <tr key={r.id} className="border-b border-border/50 hover:bg-surface-light/50 transition-colors">
+                  <td className="py-4 px-6 w-1/3">
+                    <span className="font-medium text-text-primary">{r.component_name}</span>
+                  </td>
+                  <td className="py-4 px-6">
+                    <p className="text-sm text-text-muted">{r.reasoning?.split('\n')[0]}</p>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Recycle Parts */}
+      {results.filter(r => r.result === 'recycle').length > 0 && (
+        <div className="glass-card overflow-hidden border-rose-500/20">
+          <div className="bg-rose-500/10 px-6 py-3 border-b border-rose-500/20">
+            <h2 className="text-rose-400 font-semibold flex items-center gap-2">
+              <HiOutlineTrash className="w-5 h-5" />
+              Recycle / Material Recovery Parts
+            </h2>
+          </div>
+          <table className="w-full">
+            <tbody>
+              {results.filter(r => r.result === 'recycle').map((r) => (
+                <tr key={r.id} className="border-b border-border/50 hover:bg-surface-light/50 transition-colors">
+                  <td className="py-4 px-6 w-1/3">
+                    <span className="font-medium text-text-primary">{r.component_name}</span>
+                  </td>
+                  <td className="py-4 px-6">
+                    <p className="text-sm text-text-muted">{r.reasoning?.split('\n')[0]}</p>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Back to match */}
       <div className="mt-6 text-center">

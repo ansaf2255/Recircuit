@@ -31,22 +31,35 @@ router.get('/:componentId/questions', authenticate, async (req, res) => {
 
 // ── POST /api/components/:deviceId/assess — submit ALL component responses ──
 router.post('/:deviceId/assess', authenticate, async (req, res) => {
+  const client = await db.pool.connect();
   try {
     const { deviceId } = req.params;
     const { componentResponses } = req.body;
-    // componentResponses: [{ component_id, responses: [{ question_id, answer }] }]
 
     if (!componentResponses || !Array.isArray(componentResponses)) {
+      client.release();
       return res.status(400).json({ error: 'componentResponses array is required' });
     }
 
+    await client.query('BEGIN');
+
     // Verify device exists
-    const deviceRes = await db.query('SELECT * FROM devices WHERE id = $1', [deviceId]);
-    if (!deviceRes.rows.length) return res.status(404).json({ error: 'Device not found' });
+    const deviceRes = await client.query('SELECT * FROM devices WHERE id = $1', [deviceId]);
+    if (!deviceRes.rows.length) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Device not found' });
+    }
+    const device = deviceRes.rows[0];
+    if (device.user_id !== req.user.id) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(403).json({ error: 'Not authorized to assess this device' });
+    }
 
     // Clear previous component data for this device (allow re-assessment)
-    await db.query('DELETE FROM component_responses WHERE device_id = $1', [deviceId]);
-    await db.query('DELETE FROM component_classifications WHERE device_id = $1', [deviceId]);
+    await client.query('DELETE FROM component_responses WHERE device_id = $1', [deviceId]);
+    await client.query('DELETE FROM component_classifications WHERE device_id = $1', [deviceId]);
 
     const results = [];
 
@@ -54,7 +67,7 @@ router.post('/:deviceId/assess', authenticate, async (req, res) => {
       const { component_id, responses } = comp;
 
       // Load component questions
-      const questionsRes = await db.query(
+      const questionsRes = await client.query(
         'SELECT * FROM component_questions WHERE component_id = $1 ORDER BY display_order',
         [component_id],
       );
@@ -65,35 +78,42 @@ router.post('/:deviceId/assess', authenticate, async (req, res) => {
 
       // Persist responses
       for (const r of responses) {
-        await db.query(
+        await client.query(
           `INSERT INTO component_responses (device_id, component_id, question_id, answer)
            VALUES ($1,$2,$3,$4)`,
           [deviceId, component_id, r.question_id, r.answer],
         );
       }
 
+      const recommended_action = classification.result === 'reusable' ? 'reuse_part' : 'recycle_material';
+
       // Persist classification
-      await db.query(
-        `INSERT INTO component_classifications (device_id, component_id, result, reasoning)
-         VALUES ($1,$2,$3,$4)`,
-        [deviceId, component_id, classification.result, classification.reasoning],
+      await client.query(
+        `INSERT INTO component_classifications (device_id, component_id, result, recommended_action, reasoning)
+         VALUES ($1,$2,$3,$4,$5)`,
+        [deviceId, component_id, classification.result, recommended_action, classification.reasoning],
       );
 
       // Get component name for the response
-      const compInfo = await db.query('SELECT name FROM components WHERE id = $1', [component_id]);
+      const compInfo = await client.query('SELECT name FROM components WHERE id = $1', [component_id]);
 
       results.push({
         component_id,
         component_name: compInfo.rows[0]?.name || 'Unknown',
         result: classification.result,
+        recommended_action,
         score: classification.score,
         maxScore: classification.maxScore,
         reasoning: classification.reasoning,
       });
     }
 
+    await client.query('COMMIT');
+    client.release();
     res.json({ device_id: parseInt(deviceId), components: results });
   } catch (err) {
+    await client.query('ROLLBACK');
+    client.release();
     console.error('Component assessment error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }

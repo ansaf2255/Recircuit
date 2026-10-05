@@ -14,7 +14,7 @@ router.post('/register', async (req, res) => {
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'name, email, password, and role are required' });
     }
-    const validRoles = ['seller', 'recycler', 'refurbisher', 'admin'];
+    const validRoles = ['seller', 'recycler', 'refurbisher'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: `role must be one of: ${validRoles.join(', ')}` });
     }

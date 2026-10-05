@@ -47,7 +47,7 @@ function classify(questions, responses, mode = 'device') {
     // Convention: disqualifier question phrased as a negative condition
     // (e.g. "Any swelling or leakage?")  →  "yes" = bad  →  disqualify.
     if (ans === 'yes') {
-      const result = mode === 'component' ? 'recycle' : 'recycle';
+      const result = 'recycle';
       const qObj = questions.find((q) => q.id === dq.id);
       return {
         result,
@@ -68,7 +68,8 @@ function classify(questions, responses, mode = 'device') {
   for (const q of scorable) {
     maxScore += q.weight;
     const ans = answerMap[q.id];
-    if (ans === 'yes') {
+    const goodAns = (q.good_answer || 'yes').toLowerCase();
+    if (ans === goodAns) {
       earnedScore += q.weight;
       details.push(`✓ "${q.text}" (+${q.weight})`);
     } else {

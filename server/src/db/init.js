@@ -43,6 +43,7 @@ CREATE TABLE questions (
     category_id     INTEGER       NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
     text            TEXT          NOT NULL,
     answer_type     VARCHAR(20)   NOT NULL DEFAULT 'yes_no',
+    good_answer     VARCHAR(3)    NOT NULL DEFAULT 'yes' CHECK (good_answer IN ('yes','no')),
     weight          INTEGER       NOT NULL DEFAULT 0,
     is_disqualifier BOOLEAN       NOT NULL DEFAULT false,
     display_order   INTEGER       NOT NULL DEFAULT 0
@@ -91,6 +92,7 @@ CREATE TABLE component_questions (
     id              SERIAL PRIMARY KEY,
     component_id    INTEGER  NOT NULL REFERENCES components(id) ON DELETE CASCADE,
     text            TEXT     NOT NULL,
+    good_answer     VARCHAR(3) NOT NULL DEFAULT 'yes' CHECK (good_answer IN ('yes','no')),
     weight          INTEGER  NOT NULL DEFAULT 0,
     is_disqualifier BOOLEAN  NOT NULL DEFAULT false,
     display_order   INTEGER  NOT NULL DEFAULT 0
@@ -111,6 +113,7 @@ CREATE TABLE component_classifications (
     device_id    INTEGER     NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
     component_id INTEGER     NOT NULL REFERENCES components(id),
     result       VARCHAR(20) NOT NULL CHECK (result IN ('reusable','recycle')),
+    recommended_action VARCHAR(20) CHECK (recommended_action IN ('reuse_part','recycle_material')),
     reasoning    TEXT
 );
 
@@ -118,8 +121,9 @@ CREATE TABLE component_classifications (
 CREATE TABLE matches (
     id          SERIAL PRIMARY KEY,
     device_id   INTEGER     NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
-    recycler_id INTEGER     NOT NULL REFERENCES users(id),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    partner_id  INTEGER     NOT NULL REFERENCES users(id),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(device_id, partner_id)
 );
 
 -- ===================== REQUESTS =====================
@@ -132,6 +136,10 @@ CREATE TABLE requests (
 `;
 
 async function init() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ Cannot run db:init in production!');
+    process.exit(1);
+  }
   console.log('⏳ Initialising database schema…');
   try {
     await pool.query(schema);

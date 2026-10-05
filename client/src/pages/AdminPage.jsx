@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
+import { useToast } from '../context/ToastContext';
 import { HiOutlinePlus, HiOutlineTrash, HiOutlineCheckCircle, HiOutlineChartBar, HiOutlineUsers, HiOutlineCollection, HiOutlineQuestionMarkCircle } from 'react-icons/hi';
 
 export default function AdminPage() {
+  const { addToast } = useToast();
   const [tab, setTab] = useState('analytics');
   const [analytics, setAnalytics] = useState(null);
   const [categories, setCategories] = useState([]);
   const [users, setUsers] = useState([]);
   const [questions, setQuestions] = useState([]);
+  const [components, setComponents] = useState([]);
+  const [componentQuestions, setComponentQuestions] = useState([]);
   const [selectedCat, setSelectedCat] = useState(null);
+  const [selectedComp, setSelectedComp] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // New category / question forms
   const [newCat, setNewCat] = useState('');
-  const [newQ, setNewQ] = useState({ text: '', weight: 0, is_disqualifier: false, display_order: 0 });
+  const [newQ, setNewQ] = useState({ text: '', weight: 0, is_disqualifier: false, display_order: 0, good_answer: 'yes' });
 
   useEffect(() => {
     loadData();
@@ -34,6 +39,12 @@ export default function AdminPage() {
       } else if (tab === 'questions' && selectedCat) {
         const res = await api.get(`/categories/${selectedCat}/questions`);
         setQuestions(res.data);
+      } else if (tab === 'components' && selectedCat) {
+        const res = await api.get(`/categories/${selectedCat}/components`);
+        setComponents(res.data);
+      } else if (tab === 'components' && selectedComp) {
+        const res = await api.get(`/components/${selectedComp}/questions`);
+        setComponentQuestions(res.data);
       }
     } catch (err) {
       console.error(err);
@@ -43,8 +54,12 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    if (tab === 'questions' && selectedCat) loadData();
+    if ((tab === 'questions' || tab === 'components') && selectedCat) loadData();
   }, [selectedCat]);
+
+  useEffect(() => {
+    if (tab === 'components' && selectedComp) loadData();
+  }, [selectedComp]);
 
   const addCategory = async () => {
     if (!newCat.trim()) return;
@@ -53,7 +68,7 @@ export default function AdminPage() {
       setNewCat('');
       loadData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed');
+      addToast(err.response?.data?.error || 'Failed');
     }
   };
 
@@ -63,7 +78,7 @@ export default function AdminPage() {
       await api.delete(`/admin/categories/${id}`);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed');
+      addToast(err.response?.data?.error || 'Failed');
     }
   };
 
@@ -71,10 +86,10 @@ export default function AdminPage() {
     if (!newQ.text.trim() || !selectedCat) return;
     try {
       await api.post('/admin/questions', { ...newQ, category_id: selectedCat });
-      setNewQ({ text: '', weight: 0, is_disqualifier: false, display_order: 0 });
+      setNewQ({ text: '', weight: 0, is_disqualifier: false, display_order: 0, good_answer: 'yes' });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed');
+      addToast(err.response?.data?.error || 'Failed');
     }
   };
 
@@ -83,7 +98,7 @@ export default function AdminPage() {
       await api.delete(`/admin/questions/${id}`);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed');
+      addToast(err.response?.data?.error || 'Failed');
     }
   };
 
@@ -92,7 +107,7 @@ export default function AdminPage() {
       await api.patch(`/admin/users/${id}/verify`);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed');
+      addToast(err.response?.data?.error || 'Failed');
     }
   };
 
@@ -100,6 +115,7 @@ export default function AdminPage() {
     { key: 'analytics', label: 'Analytics', icon: HiOutlineChartBar },
     { key: 'categories', label: 'Categories', icon: HiOutlineCollection },
     { key: 'questions', label: 'Questions', icon: HiOutlineQuestionMarkCircle },
+    { key: 'components', label: 'Components', icon: HiOutlineCollection },
     { key: 'users', label: 'Users', icon: HiOutlineUsers },
   ];
 
@@ -323,6 +339,17 @@ export default function AdminPage() {
                           className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-text-primary focus:border-primary-500 outline-none text-sm"
                         />
                       </div>
+                      <div>
+                        <label className="text-xs text-text-muted">Good Answer</label>
+                        <select
+                          value={newQ.good_answer}
+                          onChange={(e) => setNewQ({ ...newQ, good_answer: e.target.value })}
+                          className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-text-primary focus:border-primary-500 outline-none text-sm"
+                        >
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </div>
                       <div className="flex items-end">
                         <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
                           <input
@@ -351,6 +378,7 @@ export default function AdminPage() {
                         <div className="flex gap-3 mt-1">
                           <span className="text-xs text-text-muted">Weight: {q.weight}</span>
                           <span className="text-xs text-text-muted">Order: {q.display_order}</span>
+                          <span className="text-xs text-text-muted">Good: {q.good_answer}</span>
                           {q.is_disqualifier && (
                             <span className="text-xs text-amber-400">⚠ Disqualifier</span>
                           )}

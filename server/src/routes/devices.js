@@ -21,10 +21,14 @@ router.get('/', authenticate, async (req, res) => {
     const conditions = [];
     const params = [];
 
-    if (user_id) {
+    if (req.user.role === 'seller') {
+      params.push(req.user.id);
+      conditions.push(`d.user_id = $${params.length}`);
+    } else if (user_id) {
       params.push(user_id);
       conditions.push(`d.user_id = $${params.length}`);
     }
+    
     if (category_id) {
       params.push(category_id);
       conditions.push(`d.category_id = $${params.length}`);
@@ -52,7 +56,11 @@ router.get('/:id', authenticate, async (req, res) => {
       [req.params.id],
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Device not found' });
-    res.json(result.rows[0]);
+    const device = result.rows[0];
+    if (req.user.role === 'seller' && device.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized to view this device' });
+    }
+    res.json(device);
   } catch (err) {
     console.error('Get device error:', err);
     res.status(500).json({ error: 'Internal server error' });

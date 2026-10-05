@@ -73,13 +73,8 @@ export default function ResultPage() {
     }
   };
 
-  const handleMatch = async () => {
-    try {
-      await api.post(`/matches/${deviceId}`);
-      navigate('/requests');
-    } catch (err) {
-      alert(err.response?.data?.error || 'Matching failed');
-    }
+  const handleMatch = () => {
+    navigate(`/devices/${deviceId}/match`);
   };
 
   if (loading) {
@@ -137,24 +132,37 @@ export default function ResultPage() {
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {components.length > 0 && (
+        {components.length > 0 && classification.result !== 'recycle' && (
           <Link
             to={`/devices/${deviceId}/components`}
             className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-cyan-500/25"
           >
             <HiOutlineCog className="w-5 h-5" />
-            Assess Components
+            Assess Components (Optional)
             <HiOutlineArrowRight className="w-4 h-4" />
           </Link>
         )}
 
-        <button
-          onClick={handleMatch}
-          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-500/25"
-        >
-          <HiOutlineRefresh className="w-5 h-5" />
-          Find a Match
-        </button>
+        {components.length > 0 && classification.result === 'recycle' && (
+          <Link
+            to={`/devices/${deviceId}/components`}
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/25 animate-pulse"
+          >
+            <HiOutlineCog className="w-5 h-5" />
+            Required: Assess Components Before Matching
+            <HiOutlineArrowRight className="w-4 h-4" />
+          </Link>
+        )}
+
+        {classification.result !== 'recycle' && (
+          <button
+            onClick={handleMatch}
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-500/25"
+          >
+            <HiOutlineRefresh className="w-5 h-5" />
+            Find a Match
+          </button>
+        )}
       </div>
     </div>
   );

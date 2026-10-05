@@ -60,12 +60,12 @@ router.delete('/categories/:id', async (req, res) => {
 
 router.post('/questions', async (req, res) => {
   try {
-    const { category_id, text, answer_type, weight, is_disqualifier, display_order } = req.body;
+    const { category_id, text, answer_type, good_answer, weight, is_disqualifier, display_order } = req.body;
     if (!category_id || !text) return res.status(400).json({ error: 'category_id and text are required' });
     const result = await db.query(
-      `INSERT INTO questions (category_id, text, answer_type, weight, is_disqualifier, display_order)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [category_id, text, answer_type || 'yes_no', weight || 0, is_disqualifier || false, display_order || 0],
+      `INSERT INTO questions (category_id, text, answer_type, good_answer, weight, is_disqualifier, display_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [category_id, text, answer_type || 'yes_no', good_answer || 'yes', weight || 0, is_disqualifier || false, display_order || 0],
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -76,11 +76,11 @@ router.post('/questions', async (req, res) => {
 
 router.put('/questions/:id', async (req, res) => {
   try {
-    const { text, answer_type, weight, is_disqualifier, display_order } = req.body;
+    const { text, answer_type, good_answer, weight, is_disqualifier, display_order } = req.body;
     const result = await db.query(
-      `UPDATE questions SET text=$1, answer_type=$2, weight=$3, is_disqualifier=$4, display_order=$5
-       WHERE id=$6 RETURNING *`,
-      [text, answer_type, weight, is_disqualifier, display_order, req.params.id],
+      `UPDATE questions SET text=$1, answer_type=$2, good_answer=$3, weight=$4, is_disqualifier=$5, display_order=$6
+       WHERE id=$7 RETURNING *`,
+      [text, answer_type, good_answer || 'yes', weight, is_disqualifier, display_order, req.params.id],
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Question not found' });
     res.json(result.rows[0]);
@@ -137,12 +137,12 @@ router.delete('/components/:id', async (req, res) => {
 
 router.post('/component-questions', async (req, res) => {
   try {
-    const { component_id, text, weight, is_disqualifier, display_order } = req.body;
+    const { component_id, text, good_answer, weight, is_disqualifier, display_order } = req.body;
     if (!component_id || !text) return res.status(400).json({ error: 'component_id and text are required' });
     const result = await db.query(
-      `INSERT INTO component_questions (component_id, text, weight, is_disqualifier, display_order)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [component_id, text, weight || 0, is_disqualifier || false, display_order || 0],
+      `INSERT INTO component_questions (component_id, text, good_answer, weight, is_disqualifier, display_order)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [component_id, text, good_answer || 'yes', weight || 0, is_disqualifier || false, display_order || 0],
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -153,11 +153,11 @@ router.post('/component-questions', async (req, res) => {
 
 router.put('/component-questions/:id', async (req, res) => {
   try {
-    const { text, weight, is_disqualifier, display_order } = req.body;
+    const { text, good_answer, weight, is_disqualifier, display_order } = req.body;
     const result = await db.query(
-      `UPDATE component_questions SET text=$1, weight=$2, is_disqualifier=$3, display_order=$4
-       WHERE id=$5 RETURNING *`,
-      [text, weight, is_disqualifier, display_order, req.params.id],
+      `UPDATE component_questions SET text=$1, good_answer=$2, weight=$3, is_disqualifier=$4, display_order=$5
+       WHERE id=$6 RETURNING *`,
+      [text, good_answer || 'yes', weight, is_disqualifier, display_order, req.params.id],
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Question not found' });
     res.json(result.rows[0]);

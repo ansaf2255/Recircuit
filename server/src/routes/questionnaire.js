@@ -17,21 +17,34 @@ const { classify } = require('../engine/classifier');
 
 // ── POST /api/questionnaire/:deviceId — submit device-level responses ──
 router.post('/:deviceId', authenticate, async (req, res) => {
+  const client = await db.pool.connect();
   try {
     const { deviceId } = req.params;
     const { responses } = req.body; // [{ question_id, answer }]
 
     if (!responses || !Array.isArray(responses) || responses.length === 0) {
+      client.release();
       return res.status(400).json({ error: 'responses array is required' });
     }
 
+    await client.query('BEGIN');
+
     // Verify device exists and belongs to user
-    const deviceRes = await db.query('SELECT * FROM devices WHERE id = $1', [deviceId]);
-    if (!deviceRes.rows.length) return res.status(404).json({ error: 'Device not found' });
+    const deviceRes = await client.query('SELECT * FROM devices WHERE id = $1', [deviceId]);
+    if (!deviceRes.rows.length) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Device not found' });
+    }
     const device = deviceRes.rows[0];
+    if (device.user_id !== req.user.id) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(403).json({ error: 'Not authorized to assess this device' });
+    }
 
     // Load questions for this category
-    const questionsRes = await db.query(
+    const questionsRes = await client.query(
       'SELECT * FROM questions WHERE category_id = $1 ORDER BY display_order',
       [device.category_id],
     );
@@ -42,21 +55,24 @@ router.post('/:deviceId', authenticate, async (req, res) => {
 
     // ── Persist responses ───────────────────────────────────────
     // Clear old responses first (allow re-assessment)
-    await db.query('DELETE FROM responses WHERE device_id = $1', [deviceId]);
+    await client.query('DELETE FROM responses WHERE device_id = $1', [deviceId]);
     for (const r of responses) {
-      await db.query(
+      await client.query(
         'INSERT INTO responses (device_id, question_id, answer) VALUES ($1,$2,$3)',
         [deviceId, r.question_id, r.answer],
       );
     }
 
     // ── Persist classification ──────────────────────────────────
-    await db.query('DELETE FROM classifications WHERE device_id = $1', [deviceId]);
-    await db.query(
+    await client.query('DELETE FROM classifications WHERE device_id = $1', [deviceId]);
+    await client.query(
       `INSERT INTO classifications (device_id, result, reasoning, score)
        VALUES ($1,$2,$3,$4)`,
       [deviceId, classification.result, classification.reasoning, classification.score],
     );
+
+    await client.query('COMMIT');
+    client.release();
 
     res.json({
       device_id: parseInt(deviceId),
@@ -66,6 +82,8 @@ router.post('/:deviceId', authenticate, async (req, res) => {
       reasoning: classification.reasoning,
     });
   } catch (err) {
+    await client.query('ROLLBACK');
+    client.release();
     console.error('Questionnaire error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
