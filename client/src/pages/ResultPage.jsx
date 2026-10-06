@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
-import { HiOutlineCheckCircle, HiOutlineRefresh, HiOutlineShoppingCart, HiOutlineCog, HiOutlineTrash, HiOutlineArrowRight } from 'react-icons/hi';
+import { HiOutlineCheckCircle, HiOutlineRefresh, HiOutlineShoppingCart, HiOutlineCog, HiOutlineTrash, HiOutlineArrowRight, HiOutlineArrowLeft } from 'react-icons/hi';
 
 const resultConfig = {
   reuse: {
@@ -63,7 +63,6 @@ export default function ResultPage() {
       setDevice(deviceRes.data);
       setClassification(classRes.data);
 
-      // Check if components exist for this category
       const compRes = await api.get(`/categories/${deviceRes.data.category_id}/components`);
       setComponents(compRes.data);
     } catch (err) {
@@ -87,9 +86,9 @@ export default function ResultPage() {
 
   if (!classification) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8 text-center">
+      <div className="page-container max-w-2xl text-center">
         <p className="text-text-secondary">No classification found.</p>
-        <Link to={`/devices/${deviceId}/questionnaire`} className="text-primary-400 mt-4 inline-block">
+        <Link to={`/devices/${deviceId}/questionnaire`} className="text-primary-400 mt-4 inline-block font-medium">
           Take the assessment →
         </Link>
       </div>
@@ -100,18 +99,26 @@ export default function ResultPage() {
   const Icon = config.icon;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="page-container max-w-2xl relative">
+      <div className="glow-orb w-[400px] h-[400px] bg-primary-600/8 top-0 left-[50%] -translate-x-1/2" />
+
+      {/* Back link */}
+      <Link to={`/devices/${deviceId}`} className="text-text-muted hover:text-text-secondary text-sm flex items-center gap-1.5 mb-6 relative z-10">
+        <HiOutlineArrowLeft className="w-4 h-4" />
+        Back to device
+      </Link>
+
       {/* Result Card */}
-      <div className="glass-card p-8 text-center mb-6">
+      <div className="glass-card p-8 sm:p-10 text-center mb-6 relative z-10 animate-fade-up">
         <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${config.gradient} flex items-center justify-center mx-auto mb-6 pulse-glow`}>
           <Icon className="w-10 h-10 text-white" />
         </div>
 
-        <h1 className="text-3xl font-bold text-text-primary mb-2">{config.title}</h1>
-        <p className="text-text-secondary mb-6">{config.description}</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary mb-2 tracking-tight">{config.title}</h1>
+        <p className="text-text-secondary mb-6 max-w-sm mx-auto">{config.description}</p>
 
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl ${config.bg} border ${config.border}`}>
-          <span className={`text-sm font-semibold uppercase ${config.text}`}>
+        <div className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl ${config.bg} border ${config.border}`}>
+          <span className={`text-sm font-bold uppercase tracking-wide ${config.text}`}>
             {classification.result}
           </span>
           {classification.score !== null && (
@@ -123,20 +130,17 @@ export default function ResultPage() {
       </div>
 
       {/* Reasoning */}
-      <div className="glass-card p-6 mb-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-3">Assessment Reasoning</h2>
-        <pre className="text-sm text-text-secondary whitespace-pre-wrap font-mono bg-surface p-4 rounded-xl">
+      <div className="glass-card p-6 sm:p-8 mb-6 relative z-10 animate-fade-up" style={{ animationDelay: '100ms' }}>
+        <h2 className="text-lg font-bold text-text-primary mb-3">Assessment Reasoning</h2>
+        <pre className="text-sm text-text-secondary whitespace-pre-wrap font-mono bg-surface/60 p-4 rounded-xl leading-relaxed">
           {classification.reasoning}
         </pre>
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 relative z-10 animate-fade-up" style={{ animationDelay: '200ms' }}>
         {components.length > 0 && classification.result !== 'recycle' && (
-          <Link
-            to={`/devices/${deviceId}/components`}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-cyan-500/25"
-          >
+          <Link to={`/devices/${deviceId}/components`} className="btn-ghost flex-1 !py-3">
             <HiOutlineCog className="w-5 h-5" />
             Assess Components (Optional)
             <HiOutlineArrowRight className="w-4 h-4" />
@@ -146,19 +150,16 @@ export default function ResultPage() {
         {components.length > 0 && classification.result === 'recycle' && (
           <Link
             to={`/devices/${deviceId}/components`}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/25 animate-pulse"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-semibold rounded-2xl transition-all shadow-lg shadow-rose-500/25 animate-pulse"
           >
             <HiOutlineCog className="w-5 h-5" />
-            Required: Assess Components Before Matching
+            Required: Assess Components
             <HiOutlineArrowRight className="w-4 h-4" />
           </Link>
         )}
 
         {classification.result !== 'recycle' && (
-          <button
-            onClick={handleMatch}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-500/25"
-          >
+          <button onClick={handleMatch} className="btn-primary flex-1 !py-3">
             <HiOutlineRefresh className="w-5 h-5" />
             Find a Match
           </button>

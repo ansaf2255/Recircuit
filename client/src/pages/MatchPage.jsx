@@ -49,63 +49,79 @@ export default function MatchPage() {
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8 text-center">
-        <p className="text-rose-400 mb-4">{error}</p>
-        <Link to={`/devices/${deviceId}/result`} className="text-primary-400 hover:text-primary-300">
-          ← Back to Results
-        </Link>
+      <div className="page-container max-w-2xl text-center">
+        <div className="glass-card p-10">
+          <p className="text-rose-400 mb-4">{error}</p>
+          <Link to={`/devices/${deviceId}/result`} className="text-primary-400 hover:text-primary-300 font-medium text-sm">
+            ← Back to Results
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <Link to={`/devices/${deviceId}/result`} className="text-text-muted hover:text-text-secondary text-sm flex items-center gap-1 mb-4">
+    <div className="page-container max-w-3xl relative">
+      <div className="glow-orb w-[350px] h-[350px] bg-primary-600/10 -top-[50px] -right-[100px]" />
+
+      <div className="page-header relative z-10 animate-fade-up">
+        <Link to={`/devices/${deviceId}/result`} className="text-text-muted hover:text-text-secondary text-sm flex items-center gap-1.5 mb-4">
           <HiOutlineArrowLeft className="w-4 h-4" />
           Back to device result
         </Link>
-        <h1 className="text-3xl font-bold gradient-text">Select a Partner</h1>
-        <p className="text-text-secondary mt-1">
-          Choose a verified recycler or refurbisher to handle your device.
-        </p>
+        <h1 className="page-title gradient-text">Select a Partner</h1>
+        <p className="page-subtitle">Choose a verified recycler or refurbisher to handle your device.</p>
       </div>
 
-      <div className="space-y-4">
-        {candidates.map((partner) => (
-          <div key={partner.id} className="glass-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                {partner.name}
-                <HiOutlineCheckCircle className="w-5 h-5 text-emerald-500" title="Verified Partner" />
-              </h3>
-              <div className="flex flex-wrap gap-4 mt-2 text-sm text-text-secondary">
-                <span className="flex items-center gap-1">
-                  <HiOutlineUser className="w-4 h-4" />
-                  <span className="capitalize">{partner.role}</span>
-                </span>
-                {partner.location && (
-                  <span className="flex items-center gap-1">
-                    <HiOutlineLocationMarker className="w-4 h-4" />
-                    {partner.location}
+      <div className="space-y-4 relative z-10">
+        {candidates.map((partner, i) => (
+          <div
+            key={partner.id}
+            className="glass-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 animate-fade-up"
+            style={{ animationDelay: `${(i + 1) * 60}ms` }}
+          >
+            <div className="flex items-start gap-4">
+              {/* Avatar */}
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-emerald-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                {partner.name?.charAt(0)?.toUpperCase()}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                  {partner.name}
+                  <HiOutlineCheckCircle className="w-5 h-5 text-emerald-500" title="Verified Partner" />
+                </h3>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-sm text-text-secondary">
+                  <span className="flex items-center gap-1.5">
+                    <HiOutlineUser className="w-3.5 h-3.5" />
+                    <span className="capitalize">{partner.role}</span>
                   </span>
-                )}
+                  {partner.location && (
+                    <span className="flex items-center gap-1.5">
+                      <HiOutlineLocationMarker className="w-3.5 h-3.5" />
+                      {partner.location}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             
             <button
               onClick={() => selectPartner(partner.id)}
               disabled={matching}
-              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-medium rounded-xl transition-all shadow-lg shadow-primary-500/25 disabled:opacity-50"
+              className="btn-primary w-full sm:w-auto flex-shrink-0"
             >
-              Select
+              Select Partner
             </button>
           </div>
         ))}
 
         {candidates.length === 0 && (
-          <div className="glass-card p-8 text-center text-text-secondary">
-            No verified partners found for your device at this time.
+          <div className="glass-card p-12 text-center animate-fade-up">
+            <div className="w-16 h-16 rounded-2xl bg-surface-lighter flex items-center justify-center mx-auto mb-4">
+              <HiOutlineUser className="w-8 h-8 text-text-muted" />
+            </div>
+            <h2 className="text-lg font-bold text-text-primary mb-2">No partners available</h2>
+            <p className="text-text-secondary text-sm">No verified partners found for your device at this time.</p>
           </div>
         )}
       </div>

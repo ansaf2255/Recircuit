@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { HiOutlineUpload, HiOutlineDeviceMobile, HiOutlineDesktopComputer, HiOutlineLightningBolt } from 'react-icons/hi';
+import { HiOutlineUpload, HiOutlineDeviceMobile, HiOutlineDesktopComputer, HiOutlineLightningBolt, HiOutlineArrowRight } from 'react-icons/hi';
 
 const categoryIcons = {
   Mobile: HiOutlineDeviceMobile,
@@ -53,15 +53,17 @@ export default function DeviceFormPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold gradient-text">List a Device</h1>
-        <p className="text-text-secondary mt-2">Tell us about the device you want to recycle or repurpose.</p>
+    <div className="page-container max-w-2xl relative">
+      <div className="glow-orb w-[350px] h-[350px] bg-primary-600/10 -top-[100px] -right-[100px]" />
+
+      <div className="page-header animate-fade-up relative z-10">
+        <h1 className="page-title gradient-text">List a Device</h1>
+        <p className="page-subtitle">Tell us about the device you want to recycle or repurpose.</p>
       </div>
 
-      <div className="glass-card p-6">
+      <div className="glass-card p-6 sm:p-8 relative z-10 animate-fade-up" style={{ animationDelay: '100ms' }}>
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+          <div className="mb-5 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
             {error}
           </div>
         )}
@@ -69,8 +71,8 @@ export default function DeviceFormPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Category Selection */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-3">Category</label>
-            <div className="grid grid-cols-3 gap-3">
+            <label className="form-label">Category</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {categories.map((cat) => {
                 const Icon = categoryIcons[cat.name] || HiOutlineDeviceMobile;
                 const selected = form.category_id === String(cat.id);
@@ -79,13 +81,13 @@ export default function DeviceFormPage() {
                     key={cat.id}
                     type="button"
                     onClick={() => setForm({ ...form, category_id: String(cat.id) })}
-                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                    className={`p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col items-center gap-2.5 ${
                       selected
-                        ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                        : 'border-border bg-surface-light text-text-muted hover:border-primary-500/50'
+                        ? 'border-primary-500 bg-primary-500/10 text-primary-400 shadow-lg shadow-primary-500/10'
+                        : 'border-border bg-surface-light text-text-muted hover:border-primary-500/40 hover:bg-primary-500/[0.03]'
                     }`}
                   >
-                    <Icon className="w-8 h-8" />
+                    <Icon className="w-7 h-7" />
                     <span className="text-sm font-medium">{cat.name}</span>
                   </button>
                 );
@@ -94,58 +96,58 @@ export default function DeviceFormPage() {
           </div>
 
           {/* Brand & Model */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">Brand</label>
+              <label className="form-label">Brand</label>
               <input
                 type="text"
                 placeholder="e.g. Samsung"
                 value={form.brand}
                 onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                className="w-full px-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all"
+                className="form-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">Model</label>
+              <label className="form-label">Model</label>
               <input
                 type="text"
                 placeholder="e.g. Galaxy S21"
                 value={form.model}
                 onChange={(e) => setForm({ ...form, model: e.target.value })}
-                className="w-full px-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all"
+                className="form-input"
               />
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">Description</label>
+            <label className="form-label">Description</label>
             <textarea
               placeholder="Describe the condition and any notable issues…"
               rows={3}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all resize-none"
+              className="form-input resize-none"
             />
           </div>
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">Location</label>
+            <label className="form-label">Location</label>
             <input
               type="text"
               placeholder="City"
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
-              className="w-full px-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all"
+              className="form-input"
             />
           </div>
 
           {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">Device Photo</label>
+            <label className="form-label">Device Photo</label>
             <div
-              className="w-full h-40 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500/50 transition-all overflow-hidden"
+              className="w-full h-44 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500/40 hover:bg-primary-500/[0.02] transition-all duration-200 overflow-hidden"
               onClick={() => document.getElementById('imageInput').click()}
             >
               {imagePreview ? (
@@ -161,12 +163,10 @@ export default function DeviceFormPage() {
           </div>
 
           {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-primary-500/25"
-          >
-            {loading ? 'Creating…' : 'Continue to Assessment →'}
+          <button type="submit" disabled={loading} className="btn-primary w-full !py-3.5 !text-[15px]">
+            {loading ? 'Creating…' : (
+              <>Continue to Assessment <HiOutlineArrowRight className="w-4 h-4" /></>
+            )}
           </button>
         </form>
       </div>

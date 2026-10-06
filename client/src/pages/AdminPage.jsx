@@ -16,7 +16,6 @@ export default function AdminPage() {
   const [selectedComp, setSelectedComp] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // New category / question forms
   const [newCat, setNewCat] = useState('');
   const [newQ, setNewQ] = useState({ text: '', weight: 0, is_disqualifier: false, display_order: 0, good_answer: 'yes' });
 
@@ -42,9 +41,6 @@ export default function AdminPage() {
       } else if (tab === 'components' && selectedCat) {
         const res = await api.get(`/categories/${selectedCat}/components`);
         setComponents(res.data);
-      } else if (tab === 'components' && selectedComp) {
-        const res = await api.get(`/components/${selectedComp}/questions`);
-        setComponentQuestions(res.data);
       }
     } catch (err) {
       console.error(err);
@@ -58,7 +54,9 @@ export default function AdminPage() {
   }, [selectedCat]);
 
   useEffect(() => {
-    if (tab === 'components' && selectedComp) loadData();
+    if (tab === 'components' && selectedComp) {
+      api.get(`/components/${selectedComp}/questions`).then(res => setComponentQuestions(res.data));
+    }
   }, [selectedComp]);
 
   const addCategory = async () => {
@@ -119,20 +117,41 @@ export default function AdminPage() {
     { key: 'users', label: 'Users', icon: HiOutlineUsers },
   ];
 
+  // Category selector used by questions and components tabs
+  const CategorySelector = () => (
+    <div className="glass-card p-5 mb-5">
+      <label className="form-label">Select Category</label>
+      <select
+        value={selectedCat || ''}
+        onChange={(e) => setSelectedCat(e.target.value)}
+        className="form-input"
+      >
+        <option value="">— Choose a category —</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold gradient-text mb-8">Admin Panel</h1>
+    <div className="page-container relative">
+      <div className="glow-orb w-[400px] h-[400px] bg-primary-600/8 -top-[50px] right-0" />
+
+      <div className="page-header relative z-10 animate-fade-up">
+        <h1 className="page-title gradient-text">Admin Panel</h1>
+      </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+      <div className="flex gap-1.5 mb-8 overflow-x-auto pb-2 relative z-10 animate-fade-up" style={{ animationDelay: '60ms' }}>
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap border ${
               tab === t.key
-                ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30'
-                : 'text-text-muted hover:text-text-secondary hover:bg-surface-light border border-transparent'
+                ? 'bg-primary-500/15 text-primary-400 border-primary-500/25'
+                : 'text-text-muted hover:text-text-secondary hover:bg-surface-light border-transparent'
             }`}
           >
             <t.icon className="w-4 h-4" />
@@ -141,295 +160,338 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
-        </div>
-      ) : (
-        <>
-          {/* ═══ ANALYTICS ═══ */}
-          {tab === 'analytics' && analytics && (
-            <div className="space-y-6">
-              {/* Summary cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="glass-card p-5 text-center">
-                  <p className="text-3xl font-bold text-text-primary">{analytics.totalDevices}</p>
-                  <p className="text-sm text-text-muted mt-1">Total Devices</p>
-                </div>
-                <div className="glass-card p-5 text-center">
-                  <p className="text-3xl font-bold text-emerald-400">{analytics.divertedFromLandfill}</p>
-                  <p className="text-sm text-text-muted mt-1">Diverted from Landfill</p>
-                </div>
-                <div className="glass-card p-5 text-center">
-                  <p className="text-3xl font-bold text-primary-400">
-                    {analytics.totalDevices > 0
-                      ? Math.round((analytics.divertedFromLandfill / analytics.totalDevices) * 100)
-                      : 0}%
-                  </p>
-                  <p className="text-sm text-text-muted mt-1">Diversion Rate</p>
-                </div>
-              </div>
-
-              {/* By Category */}
-              <div className="glass-card p-6">
-                <h3 className="font-semibold text-text-primary mb-4">Devices by Category</h3>
-                <div className="space-y-3">
-                  {analytics.byCategory.map((c) => (
-                    <div key={c.category} className="flex items-center justify-between">
-                      <span className="text-text-secondary">{c.category}</span>
-                      <div className="flex items-center gap-3">
-                        <div className="w-32 h-2 bg-surface-lighter rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-primary-500 to-cyan-500 rounded-full"
-                            style={{ width: `${analytics.totalDevices ? (c.count / analytics.totalDevices) * 100 : 0}%` }}
-                          />
-                        </div>
-                        <span className="text-text-primary font-medium w-8 text-right">{c.count}</span>
-                      </div>
+      <div className="relative z-10">
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+          </div>
+        ) : (
+          <>
+            {/* ═══ ANALYTICS ═══ */}
+            {tab === 'analytics' && analytics && (
+              <div className="space-y-6 animate-fade-up">
+                {/* Summary */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="glass-card stat-card">
+                    <div className="stat-icon bg-gradient-to-br from-primary-500 to-primary-600">
+                      <HiOutlineChartBar className="w-5 h-5 text-white" />
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* By Outcome */}
-              <div className="glass-card p-6">
-                <h3 className="font-semibold text-text-primary mb-4">Classification Outcomes</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {analytics.byOutcome.map((o) => {
-                    const colors = {
-                      reuse: 'text-emerald-400 bg-emerald-500/10',
-                      resell: 'text-cyan-400 bg-cyan-500/10',
-                      refurbish: 'text-amber-400 bg-amber-500/10',
-                      recycle: 'text-rose-400 bg-rose-500/10',
-                    };
-                    return (
-                      <div key={o.result} className={`p-4 rounded-xl text-center ${colors[o.result] || ''}`}>
-                        <p className="text-2xl font-bold">{o.count}</p>
-                        <p className="text-sm capitalize mt-1">{o.result}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Component Stats */}
-              {analytics.componentStats.length > 0 && (
-                <div className="glass-card p-6">
-                  <h3 className="font-semibold text-text-primary mb-4">Component Reuse/Recycle Stats</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-2 px-3 text-text-secondary">Component</th>
-                          <th className="text-left py-2 px-3 text-text-secondary">Status</th>
-                          <th className="text-right py-2 px-3 text-text-secondary">Count</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analytics.componentStats.map((s, i) => (
-                          <tr key={i} className="border-b border-border/50">
-                            <td className="py-2 px-3 text-text-primary">{s.component}</td>
-                            <td className={`py-2 px-3 capitalize ${s.result === 'reusable' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {s.result}
-                            </td>
-                            <td className="py-2 px-3 text-right text-text-primary">{s.count}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div>
+                      <p className="text-3xl font-bold text-text-primary">{analytics.totalDevices}</p>
+                      <p className="text-xs text-text-muted font-medium">Total Devices</p>
+                    </div>
+                  </div>
+                  <div className="glass-card stat-card">
+                    <div className="stat-icon bg-gradient-to-br from-emerald-500 to-emerald-600">
+                      <HiOutlineCheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-emerald-400">{analytics.divertedFromLandfill}</p>
+                      <p className="text-xs text-text-muted font-medium">Diverted from Landfill</p>
+                    </div>
+                  </div>
+                  <div className="glass-card stat-card">
+                    <div className="stat-icon bg-gradient-to-br from-cyan-500 to-cyan-600">
+                      <HiOutlineChartBar className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-primary-400">
+                        {analytics.totalDevices > 0
+                          ? Math.round((analytics.divertedFromLandfill / analytics.totalDevices) * 100)
+                          : 0}%
+                      </p>
+                      <p className="text-xs text-text-muted font-medium">Diversion Rate</p>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Requests by Status */}
-              {analytics.requestsByStatus.length > 0 && (
+                {/* By Category */}
                 <div className="glass-card p-6">
-                  <h3 className="font-semibold text-text-primary mb-4">Requests by Status</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {analytics.requestsByStatus.map((r) => (
-                      <div key={r.status} className="p-4 rounded-xl bg-surface-light text-center">
-                        <p className="text-2xl font-bold text-text-primary">{r.count}</p>
-                        <p className="text-sm text-text-muted capitalize mt-1">{r.status}</p>
+                  <h3 className="font-bold text-text-primary mb-5">Devices by Category</h3>
+                  <div className="space-y-3.5">
+                    {analytics.byCategory.map((c) => (
+                      <div key={c.category} className="flex items-center justify-between">
+                        <span className="text-text-secondary text-sm font-medium">{c.category}</span>
+                        <div className="flex items-center gap-3">
+                          <div className="w-32 h-2.5 bg-surface-lighter rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-primary-500 to-cyan-500 rounded-full transition-all duration-500"
+                              style={{ width: `${analytics.totalDevices ? (c.count / analytics.totalDevices) * 100 : 0}%` }}
+                            />
+                          </div>
+                          <span className="text-text-primary font-bold text-sm w-8 text-right">{c.count}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
-            </div>
-          )}
 
-          {/* ═══ CATEGORIES ═══ */}
-          {tab === 'categories' && (
-            <div className="space-y-4">
-              <div className="glass-card p-4 flex gap-3">
-                <input
-                  type="text"
-                  placeholder="New category name"
-                  value={newCat}
-                  onChange={(e) => setNewCat(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-surface border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 outline-none"
-                />
-                <button
-                  onClick={addCategory}
-                  className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-xl font-medium hover:bg-primary-500/30 transition-all flex items-center gap-2"
-                >
-                  <HiOutlinePlus className="w-4 h-4" /> Add
-                </button>
+                {/* By Outcome */}
+                <div className="glass-card p-6">
+                  <h3 className="font-bold text-text-primary mb-5">Classification Outcomes</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {analytics.byOutcome.map((o) => {
+                      const colors = {
+                        reuse: 'text-emerald-400 bg-emerald-500/8 border-emerald-500/15',
+                        resell: 'text-cyan-400 bg-cyan-500/8 border-cyan-500/15',
+                        refurbish: 'text-amber-400 bg-amber-500/8 border-amber-500/15',
+                        recycle: 'text-rose-400 bg-rose-500/8 border-rose-500/15',
+                      };
+                      return (
+                        <div key={o.result} className={`p-5 rounded-2xl text-center border ${colors[o.result] || ''}`}>
+                          <p className="text-2xl font-bold">{o.count}</p>
+                          <p className="text-sm capitalize mt-1 opacity-80">{o.result}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Component Stats */}
+                {analytics.componentStats.length > 0 && (
+                  <div className="glass-card p-6 overflow-hidden">
+                    <h3 className="font-bold text-text-primary mb-5">Component Reuse/Recycle Stats</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border/50">
+                            <th className="text-left py-3 px-4 text-text-muted font-medium">Component</th>
+                            <th className="text-left py-3 px-4 text-text-muted font-medium">Status</th>
+                            <th className="text-right py-3 px-4 text-text-muted font-medium">Count</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analytics.componentStats.map((s, i) => (
+                            <tr key={i} className="border-b border-border/30">
+                              <td className="py-3 px-4 text-text-primary font-medium">{s.component}</td>
+                              <td className={`py-3 px-4 capitalize ${s.result === 'reusable' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {s.result}
+                              </td>
+                              <td className="py-3 px-4 text-right text-text-primary font-medium">{s.count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Requests by Status */}
+                {analytics.requestsByStatus.length > 0 && (
+                  <div className="glass-card p-6">
+                    <h3 className="font-bold text-text-primary mb-5">Requests by Status</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {analytics.requestsByStatus.map((r) => (
+                        <div key={r.status} className="p-5 rounded-2xl bg-surface-light/60 text-center border border-border/50">
+                          <p className="text-2xl font-bold text-text-primary">{r.count}</p>
+                          <p className="text-sm text-text-muted capitalize mt-1">{r.status}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+            )}
 
-              {categories.map((cat) => (
-                <div key={cat.id} className="glass-card p-4 flex items-center justify-between">
-                  <span className="text-text-primary font-medium">{cat.name}</span>
-                  <button
-                    onClick={() => deleteCategory(cat.id)}
-                    className="p-2 text-text-muted hover:text-rose-400 transition-colors"
-                  >
-                    <HiOutlineTrash className="w-4 h-4" />
+            {/* ═══ CATEGORIES ═══ */}
+            {tab === 'categories' && (
+              <div className="space-y-4 animate-fade-up">
+                <div className="glass-card p-5 flex gap-3">
+                  <input
+                    type="text"
+                    placeholder="New category name"
+                    value={newCat}
+                    onChange={(e) => setNewCat(e.target.value)}
+                    className="form-input flex-1"
+                    onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+                  />
+                  <button onClick={addCategory} className="btn-primary">
+                    <HiOutlinePlus className="w-4 h-4" /> Add
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
 
-          {/* ═══ QUESTIONS ═══ */}
-          {tab === 'questions' && (
-            <div className="space-y-4">
-              {/* Category selector */}
-              <div className="glass-card p-4">
-                <label className="text-sm text-text-secondary mb-2 block">Select Category</label>
-                <select
-                  value={selectedCat || ''}
-                  onChange={(e) => setSelectedCat(e.target.value)}
-                  className="w-full px-4 py-2 bg-surface border border-border rounded-xl text-text-primary focus:border-primary-500 outline-none"
-                >
-                  <option value="">-- Choose --</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedCat && (
-                <>
-                  {/* Add question form */}
-                  <div className="glass-card p-4 space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Question text"
-                      value={newQ.text}
-                      onChange={(e) => setNewQ({ ...newQ, text: e.target.value })}
-                      className="w-full px-4 py-2 bg-surface border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 outline-none"
-                    />
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="text-xs text-text-muted">Weight</label>
-                        <input
-                          type="number"
-                          value={newQ.weight}
-                          onChange={(e) => setNewQ({ ...newQ, weight: parseInt(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-text-primary focus:border-primary-500 outline-none text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-text-muted">Order</label>
-                        <input
-                          type="number"
-                          value={newQ.display_order}
-                          onChange={(e) => setNewQ({ ...newQ, display_order: parseInt(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-text-primary focus:border-primary-500 outline-none text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-text-muted">Good Answer</label>
-                        <select
-                          value={newQ.good_answer}
-                          onChange={(e) => setNewQ({ ...newQ, good_answer: e.target.value })}
-                          className="w-full px-3 py-2 bg-surface border border-border rounded-xl text-text-primary focus:border-primary-500 outline-none text-sm"
-                        >
-                          <option value="yes">Yes</option>
-                          <option value="no">No</option>
-                        </select>
-                      </div>
-                      <div className="flex items-end">
-                        <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={newQ.is_disqualifier}
-                            onChange={(e) => setNewQ({ ...newQ, is_disqualifier: e.target.checked })}
-                            className="rounded"
-                          />
-                          Disqualifier
-                        </label>
-                      </div>
-                    </div>
-                    <button
-                      onClick={addQuestion}
-                      className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-xl font-medium hover:bg-primary-500/30 transition-all flex items-center gap-2"
-                    >
-                      <HiOutlinePlus className="w-4 h-4" /> Add Question
+                {categories.map((cat) => (
+                  <div key={cat.id} className="glass-card p-5 flex items-center justify-between">
+                    <span className="text-text-primary font-medium">{cat.name}</span>
+                    <button onClick={() => deleteCategory(cat.id)} className="p-2 text-text-muted hover:text-rose-400 transition-colors rounded-xl hover:bg-rose-500/10">
+                      <HiOutlineTrash className="w-4 h-4" />
                     </button>
                   </div>
+                ))}
+              </div>
+            )}
 
-                  {/* Question list */}
-                  {questions.map((q) => (
-                    <div key={q.id} className="glass-card p-4 flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="text-text-primary text-sm">{q.text}</p>
-                        <div className="flex gap-3 mt-1">
-                          <span className="text-xs text-text-muted">Weight: {q.weight}</span>
-                          <span className="text-xs text-text-muted">Order: {q.display_order}</span>
-                          <span className="text-xs text-text-muted">Good: {q.good_answer}</span>
-                          {q.is_disqualifier && (
-                            <span className="text-xs text-amber-400">⚠ Disqualifier</span>
-                          )}
+            {/* ═══ QUESTIONS ═══ */}
+            {tab === 'questions' && (
+              <div className="space-y-4 animate-fade-up">
+                <CategorySelector />
+
+                {selectedCat && (
+                  <>
+                    {/* Add question form */}
+                    <div className="glass-card p-5 space-y-4">
+                      <input
+                        type="text"
+                        placeholder="Question text"
+                        value={newQ.text}
+                        onChange={(e) => setNewQ({ ...newQ, text: e.target.value })}
+                        className="form-input"
+                      />
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                          <label className="form-label">Weight</label>
+                          <input
+                            type="number"
+                            value={newQ.weight}
+                            onChange={(e) => setNewQ({ ...newQ, weight: parseInt(e.target.value) || 0 })}
+                            className="form-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">Order</label>
+                          <input
+                            type="number"
+                            value={newQ.display_order}
+                            onChange={(e) => setNewQ({ ...newQ, display_order: parseInt(e.target.value) || 0 })}
+                            className="form-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">Good Answer</label>
+                          <select
+                            value={newQ.good_answer}
+                            onChange={(e) => setNewQ({ ...newQ, good_answer: e.target.value })}
+                            className="form-input"
+                          >
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                          </select>
+                        </div>
+                        <div className="flex items-end">
+                          <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer py-2">
+                            <input
+                              type="checkbox"
+                              checked={newQ.is_disqualifier}
+                              onChange={(e) => setNewQ({ ...newQ, is_disqualifier: e.target.checked })}
+                              className="rounded"
+                            />
+                            Disqualifier
+                          </label>
                         </div>
                       </div>
-                      <button
-                        onClick={() => deleteQuestion(q.id)}
-                        className="p-2 text-text-muted hover:text-rose-400 transition-colors"
-                      >
-                        <HiOutlineTrash className="w-4 h-4" />
+                      <button onClick={addQuestion} className="btn-primary">
+                        <HiOutlinePlus className="w-4 h-4" /> Add Question
                       </button>
                     </div>
-                  ))}
-                </>
-              )}
-            </div>
-          )}
 
-          {/* ═══ USERS ═══ */}
-          {tab === 'users' && (
-            <div className="space-y-3">
-              {users.map((u) => (
-                <div key={u.id} className="glass-card p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-text-primary font-medium">{u.name}</p>
-                    <div className="flex gap-3 text-sm text-text-muted mt-1">
-                      <span>{u.email}</span>
-                      <span className="capitalize">{u.role}</span>
-                      {u.location && <span>📍 {u.location}</span>}
+                    {/* Question list */}
+                    {questions.map((q) => (
+                      <div key={q.id} className="glass-card p-5 flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-text-primary text-sm font-medium">{q.text}</p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <span className="badge !text-[11px] text-text-muted bg-surface-lighter border-border">W: {q.weight}</span>
+                            <span className="badge !text-[11px] text-text-muted bg-surface-lighter border-border">#{q.display_order}</span>
+                            <span className="badge !text-[11px] text-text-muted bg-surface-lighter border-border">Good: {q.good_answer}</span>
+                            {q.is_disqualifier && (
+                              <span className="badge !text-[11px] text-amber-400 bg-amber-500/10 border-amber-500/20">⚠ Disqualifier</span>
+                            )}
+                          </div>
+                        </div>
+                        <button onClick={() => deleteQuestion(q.id)} className="p-2 text-text-muted hover:text-rose-400 transition-colors rounded-xl hover:bg-rose-500/10 flex-shrink-0">
+                          <HiOutlineTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ═══ COMPONENTS ═══ */}
+            {tab === 'components' && (
+              <div className="space-y-4 animate-fade-up">
+                <CategorySelector />
+
+                {selectedCat && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {components.map((comp) => (
+                        <div
+                          key={comp.id}
+                          onClick={() => setSelectedComp(comp.id === selectedComp ? null : comp.id)}
+                          className={`glass-card p-5 cursor-pointer transition-all duration-200 ${
+                            selectedComp === comp.id ? '!border-primary-500/40' : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-text-primary font-medium text-sm">{comp.name}</span>
+                            <span className="text-xs text-text-muted">Click to view questions</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {selectedComp && componentQuestions.length > 0 && (
+                      <div className="glass-card p-5 space-y-3">
+                        <h3 className="font-bold text-text-primary text-sm mb-3">
+                          Questions for {components.find(c => c.id === selectedComp)?.name}
+                        </h3>
+                        {componentQuestions.map((q) => (
+                          <div key={q.id} className="py-2.5 px-3 rounded-xl bg-surface-light/50 flex items-center justify-between">
+                            <span className="text-text-secondary text-sm">{q.text}</span>
+                            <div className="flex gap-1.5">
+                              <span className="badge !text-[11px] text-text-muted bg-surface-lighter border-border">W: {q.weight}</span>
+                              <span className="badge !text-[11px] text-text-muted bg-surface-lighter border-border">Good: {q.good_answer}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ═══ USERS ═══ */}
+            {tab === 'users' && (
+              <div className="space-y-3 animate-fade-up">
+                {users.map((u, i) => (
+                  <div key={u.id} className="glass-card p-5 flex items-center justify-between animate-fade-up" style={{ animationDelay: `${i * 40}ms` }}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                        {u.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-text-primary font-medium text-sm">{u.name}</p>
+                        <div className="flex gap-x-3 text-xs text-text-muted mt-0.5">
+                          <span>{u.email}</span>
+                          <span className="capitalize">{u.role}</span>
+                          {u.location && <span>📍 {u.location}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {u.verified ? (
+                        <span className="badge text-emerald-400 bg-emerald-500/10 border-emerald-500/20">
+                          <HiOutlineCheckCircle className="w-3.5 h-3.5" /> Verified
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => verifyUser(u.id)}
+                          className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-all duration-200"
+                        >
+                          Verify
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {u.verified ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-400 text-sm">
-                        <HiOutlineCheckCircle className="w-4 h-4" /> Verified
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => verifyUser(u.id)}
-                        className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/20 transition-all"
-                      >
-                        Verify
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

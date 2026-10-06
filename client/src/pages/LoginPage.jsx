@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { HiOutlineChip, HiOutlineMail, HiOutlineLockClosed, HiOutlineUser, HiOutlineLocationMarker } from 'react-icons/hi';
 
@@ -33,24 +33,25 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary-600/20 rounded-full blur-[128px]" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-emerald-500/20 rounded-full blur-[128px]" />
+      {/* Background orbs */}
+      <div className="glow-orb w-[500px] h-[500px] bg-primary-600/15 top-[10%] -left-[200px]" />
+      <div className="glow-orb w-[400px] h-[400px] bg-emerald-500/12 bottom-[10%] -right-[150px]" />
+      <div className="glow-orb w-[300px] h-[300px] bg-cyan-500/8 top-[60%] left-[30%]" />
 
-      <div className="glass-card w-full max-w-md p-8 relative">
+      <div className="glass-card w-full max-w-[420px] p-8 sm:p-10 relative animate-fade-up">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-emerald-500 flex items-center justify-center mb-4 pulse-glow">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-emerald-500 flex items-center justify-center mb-5 pulse-glow">
             <HiOutlineChip className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text">ReCircuit</h1>
-          <p className="text-text-secondary mt-2 text-center">
-            {isRegister ? 'Create your account' : 'Welcome back'}
+          <h1 className="text-3xl font-extrabold gradient-text tracking-tight">ReCircuit</h1>
+          <p className="text-text-secondary mt-2 text-center text-sm">
+            {isRegister ? 'Create your account to get started' : 'Welcome back — sign in to continue'}
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+          <div className="mb-5 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
             {error}
           </div>
         )}
@@ -58,39 +59,39 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
             <div className="relative">
-              <HiOutlineUser className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+              <HiOutlineUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-muted" />
               <input
                 type="text"
                 placeholder="Full Name"
                 value={form.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 required
-                className="w-full pl-11 pr-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all"
+                className="form-input pl-11"
               />
             </div>
           )}
 
           <div className="relative">
-            <HiOutlineMail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+            <HiOutlineMail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-muted" />
             <input
               type="email"
               placeholder="Email address"
               value={form.email}
               onChange={(e) => updateField('email', e.target.value)}
               required
-              className="w-full pl-11 pr-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all"
+              className="form-input pl-11"
             />
           </div>
 
           <div className="relative">
-            <HiOutlineLockClosed className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+            <HiOutlineLockClosed className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-muted" />
             <input
               type="password"
               placeholder="Password"
               value={form.password}
               onChange={(e) => updateField('password', e.target.value)}
               required
-              className="w-full pl-11 pr-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all"
+              className="form-input pl-11"
             />
           </div>
 
@@ -99,31 +100,27 @@ export default function LoginPage() {
               <select
                 value={form.role}
                 onChange={(e) => updateField('role', e.target.value)}
-                className="w-full px-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all"
+                className="form-input"
               >
                 <option value="seller">Seller — List devices</option>
                 <option value="recycler">Recycler — Process e-waste</option>
-                <option value="refurbisher">Refurbisher — Repair &amp; resell</option>
+                <option value="refurbisher">Refurbisher — Repair & resell</option>
               </select>
 
               <div className="relative">
-                <HiOutlineLocationMarker className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                <HiOutlineLocationMarker className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-muted" />
                 <input
                   type="text"
                   placeholder="Location (city)"
                   value={form.location}
                   onChange={(e) => updateField('location', e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-surface-light border border-border rounded-xl text-text-primary placeholder:text-text-muted focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all"
+                  className="form-input pl-11"
                 />
               </div>
             </>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40"
-          >
+          <button type="submit" disabled={loading} className="btn-primary w-full !py-3 !text-[15px]">
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -135,11 +132,11 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-text-secondary">
+        <p className="mt-6 text-center text-sm text-text-muted">
           {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
             onClick={() => { setIsRegister(!isRegister); setError(''); }}
-            className="text-primary-400 hover:text-primary-300 font-medium transition-colors"
+            className="text-primary-400 hover:text-primary-300 font-semibold transition-colors"
           >
             {isRegister ? 'Sign in' : 'Register'}
           </button>

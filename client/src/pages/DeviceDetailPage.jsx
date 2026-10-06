@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api';
-import { HiOutlineArrowRight } from 'react-icons/hi';
+import { HiOutlineArrowRight, HiOutlineLocationMarker } from 'react-icons/hi';
 
 const classColors = {
-  reuse: 'text-emerald-400',
-  resell: 'text-cyan-400',
-  refurbish: 'text-amber-400',
-  recycle: 'text-rose-400',
+  reuse: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  resell: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+  refurbish: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  recycle: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
 };
 
 export default function DeviceDetailPage() {
@@ -53,65 +53,68 @@ export default function DeviceDetailPage() {
   if (!device) return <p className="text-center text-text-secondary py-8">Device not found.</p>;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="glass-card overflow-hidden">
+    <div className="page-container max-w-3xl relative">
+      <div className="glow-orb w-[350px] h-[350px] bg-primary-600/8 top-0 right-0" />
+
+      <div className="glass-card overflow-hidden relative z-10 animate-fade-up">
+        {/* Hero image */}
         {device.image_url && (
-          <div className="w-full h-56 overflow-hidden">
+          <div className="w-full h-60 overflow-hidden">
             <img src={device.image_url} alt={device.model} className="w-full h-full object-cover" />
           </div>
         )}
 
-        <div className="p-6">
-          <div className="flex items-start justify-between mb-4">
+        <div className="p-6 sm:p-8">
+          {/* Title row */}
+          <div className="flex items-start justify-between gap-4 mb-5">
             <div>
-              <h1 className="text-2xl font-bold text-text-primary">{device.brand} {device.model}</h1>
-              <p className="text-text-muted">{device.category_name}</p>
+              <h1 className="text-2xl font-bold text-text-primary tracking-tight">{device.brand} {device.model}</h1>
+              <p className="text-text-muted text-sm mt-1">{device.category_name}</p>
             </div>
             {classification && (
-              <span className={`text-sm font-bold uppercase ${classColors[classification.result]}`}>
+              <span className={`badge capitalize ${classColors[classification.result] || ''}`}>
                 {classification.result}
               </span>
             )}
           </div>
 
-          {device.description && (
-            <p className="text-text-secondary mb-4">{device.description}</p>
-          )}
-          {device.location && (
-            <p className="text-sm text-text-muted mb-6">📍 {device.location}</p>
-          )}
+          {/* Meta info */}
+          <div className="space-y-2 mb-6">
+            {device.description && (
+              <p className="text-text-secondary text-sm leading-relaxed">{device.description}</p>
+            )}
+            {device.location && (
+              <p className="text-sm text-text-muted flex items-center gap-1.5">
+                <HiOutlineLocationMarker className="w-4 h-4" /> {device.location}
+              </p>
+            )}
+          </div>
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3">
             {!classification && (
-              <Link
-                to={`/devices/${deviceId}/questionnaire`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-medium rounded-xl text-sm"
-              >
-                Start Assessment <HiOutlineArrowRight />
+              <Link to={`/devices/${deviceId}/questionnaire`} className="btn-primary">
+                Start Assessment <HiOutlineArrowRight className="w-4 h-4" />
               </Link>
             )}
             {classification && (
-              <Link
-                to={`/devices/${deviceId}/result`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-medium rounded-xl text-sm"
-              >
-                View Results <HiOutlineArrowRight />
+              <Link to={`/devices/${deviceId}/result`} className="btn-primary">
+                View Results <HiOutlineArrowRight className="w-4 h-4" />
               </Link>
             )}
           </div>
         </div>
       </div>
 
-      {/* Component Results if available */}
+      {/* Component Results */}
       {componentResults.length > 0 && (
-        <div className="glass-card mt-6 p-6">
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Component Breakdown</h2>
+        <div className="glass-card mt-6 p-6 sm:p-8 relative z-10 animate-fade-up" style={{ animationDelay: '100ms' }}>
+          <h2 className="text-lg font-bold text-text-primary mb-4">Component Breakdown</h2>
           <div className="space-y-2">
             {componentResults.map((r) => (
-              <div key={r.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-surface-light">
-                <span className="text-text-primary text-sm">{r.component_name}</span>
-                <span className={`text-sm font-medium capitalize ${r.result === 'reusable' ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <div key={r.id} className="flex items-center justify-between py-3 px-4 rounded-xl bg-surface-light/60">
+                <span className="text-text-primary text-sm font-medium">{r.component_name}</span>
+                <span className={`badge capitalize ${r.result === 'reusable' ? classColors.reuse : classColors.recycle}`}>
                   {r.result}
                 </span>
               </div>
