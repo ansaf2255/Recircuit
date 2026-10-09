@@ -31,7 +31,7 @@ async function seed() {
     // ── Device-level questions (all 3 categories) ─────────────────
     const deviceQuestions = [
       // Mobile
-      { cat: 'Mobile', text: 'Does the device power on?',                goodAns: 'yes', weight: 15, disq: false, order: 1 },
+      { cat: 'Mobile', text: 'Does the device power on?',                goodAns: 'yes', weight: 15, disq: true, order: 1 },
       { cat: 'Mobile', text: 'Is the screen cracked or damaged?',        goodAns: 'no',  weight: 10, disq: false, order: 2 },
       { cat: 'Mobile', text: 'Does the touchscreen respond normally?',   goodAns: 'yes', weight: 10, disq: false, order: 3 },
       { cat: 'Mobile', text: 'Does it hold charge for at least 2 hours?',goodAns: 'yes', weight: 10, disq: false, order: 4 },
@@ -39,7 +39,7 @@ async function seed() {
       { cat: 'Mobile', text: 'Are all physical buttons functional?',     goodAns: 'yes', weight: 5,  disq: false, order: 6 },
 
       // Laptop
-      { cat: 'Laptop', text: 'Does the laptop power on?',               goodAns: 'yes', weight: 15, disq: false, order: 1 },
+      { cat: 'Laptop', text: 'Does the laptop power on?',               goodAns: 'yes', weight: 15, disq: true, order: 1 },
       { cat: 'Laptop', text: 'Does the display show a clear image?',    goodAns: 'yes', weight: 10, disq: false, order: 2 },
       { cat: 'Laptop', text: 'Is the keyboard fully functional?',       goodAns: 'yes', weight: 8,  disq: false, order: 3 },
       { cat: 'Laptop', text: 'Does it connect to Wi-Fi?',               goodAns: 'yes', weight: 5,  disq: false, order: 4 },
@@ -48,7 +48,7 @@ async function seed() {
       { cat: 'Laptop', text: 'Are there any burn marks or smoke damage?',goodAns: 'no', weight: 0,  disq: true,  order: 7 },
 
       // Home Appliance
-      { cat: 'Home Appliance', text: 'Does the appliance turn on?',      goodAns: 'yes', weight: 15, disq: false, order: 1 },
+      { cat: 'Home Appliance', text: 'Does the appliance turn on?',      goodAns: 'yes', weight: 15, disq: true, order: 1 },
       { cat: 'Home Appliance', text: 'Does it perform its primary function?', goodAns: 'yes', weight: 15, disq: false, order: 2 },
       { cat: 'Home Appliance', text: 'Is the power cord intact?',       goodAns: 'yes', weight: 5,  disq: false, order: 3 },
       { cat: 'Home Appliance', text: 'Are there any exposed wires?',    goodAns: 'no',  weight: 0,  disq: true,  order: 4 },

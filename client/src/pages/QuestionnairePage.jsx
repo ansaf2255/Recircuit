@@ -35,7 +35,7 @@ export default function QuestionnairePage() {
     const newAnswers = { ...answers, [q.id]: answer };
     setAnswers(newAnswers);
 
-    if (q.is_disqualifier && answer === 'yes') {
+    if (q.is_disqualifier && answer !== q.good_answer) {
       submitAnswers(newAnswers);
       return;
     }

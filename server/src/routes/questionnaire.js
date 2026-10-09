@@ -45,7 +45,7 @@ router.post('/:deviceId', authenticate, async (req, res) => {
 
     // Load questions for this category
     const questionsRes = await client.query(
-      'SELECT * FROM questions WHERE category_id = $1 ORDER BY display_order',
+      'SELECT * FROM questions WHERE category_id = $1 ORDER BY is_disqualifier DESC, display_order',
       [device.category_id],
     );
     const questions = questionsRes.rows;

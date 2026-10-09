@@ -66,7 +66,7 @@ export default function LoginPage() {
                 value={form.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 required
-                className="form-input pl-11"
+                className="form-input !pl-11"
               />
             </div>
           )}
@@ -79,7 +79,7 @@ export default function LoginPage() {
               value={form.email}
               onChange={(e) => updateField('email', e.target.value)}
               required
-              className="form-input pl-11"
+              className="form-input !pl-11"
             />
           </div>
 
@@ -91,7 +91,7 @@ export default function LoginPage() {
               value={form.password}
               onChange={(e) => updateField('password', e.target.value)}
               required
-              className="form-input pl-11"
+              className="form-input !pl-11"
             />
           </div>
 
@@ -114,7 +114,7 @@ export default function LoginPage() {
                   placeholder="Location (city)"
                   value={form.location}
                   onChange={(e) => updateField('location', e.target.value)}
-                  className="form-input pl-11"
+                  className="form-input !pl-11"
                 />
               </div>
             </>

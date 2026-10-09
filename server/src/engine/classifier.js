@@ -43,17 +43,17 @@ function classify(questions, responses, mode = 'device') {
   const disqualifiers = questions.filter((q) => q.is_disqualifier);
   for (const dq of disqualifiers) {
     const ans = answerMap[dq.id];
-    // For disqualifier questions the "bad" answer triggers disqualification.
-    // Convention: disqualifier question phrased as a negative condition
-    // (e.g. "Any swelling or leakage?")  →  "yes" = bad  →  disqualify.
-    if (ans === 'yes') {
+    const goodAns = (dq.good_answer || 'yes').toLowerCase();
+    
+    // For disqualifier questions, any answer that is NOT the good answer triggers disqualification.
+    if (ans && ans !== goodAns) {
       const result = 'recycle';
       const qObj = questions.find((q) => q.id === dq.id);
       return {
         result,
         score: 0,
         maxScore: 0,
-        reasoning: `Disqualified: "${qObj?.text || 'Unknown question'}" answered Yes. Immediate ${result} recommendation.`,
+        reasoning: `Disqualified: "${qObj?.text || 'Unknown question'}" answered ${ans}. Immediate ${result} recommendation.`,
       };
     }
   }

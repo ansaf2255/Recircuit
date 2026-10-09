@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -12,11 +13,31 @@ import ResultPage from './pages/ResultPage';
 import ComponentAssessmentPage from './pages/ComponentAssessmentPage';
 import ComponentResultsPage from './pages/ComponentResultsPage';
 import RequestsPage from './pages/RequestsPage';
-import MatchPage from './pages/MatchPage';
 import AdminPage from './pages/AdminPage';
+import MarketplacePage from './pages/MarketplacePage';
+import CertificatePage from './pages/CertificatePage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // Reset all theme classes first
+    document.body.classList.remove('theme-seller', 'theme-partner', 'theme-recycler', 'theme-refurbisher', 'theme-admin');
+    
+    if (user) {
+      if (user.role === 'seller') {
+        document.body.classList.add('theme-seller');
+      } else if (user.role === 'admin') {
+        document.body.classList.add('theme-admin');
+      } else if (user.role === 'recycler') {
+        document.body.classList.add('theme-recycler');
+      } else if (user.role === 'refurbisher') {
+        document.body.classList.add('theme-refurbisher');
+      }
+    } else {
+      document.body.classList.add('theme-seller'); // Default
+    }
+  }, [user]);
 
   if (loading) {
     return (
@@ -32,7 +53,7 @@ function AppRoutes() {
   return (
     <>
       <Navbar />
-      <main className={user ? 'pt-16' : ''}>
+      <main className={user ? 'pt-24 lg:pt-28' : ''}>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
 
@@ -64,12 +85,18 @@ function AppRoutes() {
             <ProtectedRoute><ComponentResultsPage /></ProtectedRoute>
           } />
 
-          <Route path="/devices/:deviceId/match" element={
-            <ProtectedRoute><MatchPage /></ProtectedRoute>
-          } />
-
           <Route path="/requests" element={
             <ProtectedRoute><RequestsPage /></ProtectedRoute>
+          } />
+
+          <Route path="/certificate/:id" element={
+            <ProtectedRoute><CertificatePage /></ProtectedRoute>
+          } />
+
+          <Route path="/marketplace" element={
+            <ProtectedRoute roles={['recycler', 'refurbisher', 'admin']}>
+              <MarketplacePage />
+            </ProtectedRoute>
           } />
 
           <Route path="/admin" element={

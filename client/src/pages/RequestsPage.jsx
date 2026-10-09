@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { HiOutlineClock, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineCheck, HiOutlineLocationMarker } from 'react-icons/hi';
+import { Link } from 'react-router-dom';
+import { HiOutlineClock, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineCheck, HiOutlineLocationMarker, HiOutlineDocumentDownload } from 'react-icons/hi';
 
 const statusConfig = {
   pending:   { color: 'text-amber-400 bg-amber-500/10 border-amber-500/20', icon: HiOutlineClock, label: 'Pending' },
@@ -118,8 +119,16 @@ export default function RequestsPage() {
 
                       {/* Partner / Seller */}
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary mb-2">
-                        {req.partner_name && <span>Partner: <strong className="text-text-primary">{req.partner_name}</strong></span>}
-                        {req.seller_name && <span>Seller: <strong className="text-text-primary">{req.seller_name}</strong></span>}
+                        {req.partner_name && (
+                          <span>Partner: <strong className="text-text-primary">{req.partner_name}</strong>
+                          {req.partner_email && <a href={`mailto:${req.partner_email}`} className="ml-1 text-primary-400 hover:underline">({req.partner_email})</a>}
+                          </span>
+                        )}
+                        {req.seller_name && (
+                          <span>Seller: <strong className="text-text-primary">{req.seller_name}</strong>
+                          {req.seller_email && <a href={`mailto:${req.seller_email}`} className="ml-1 text-primary-400 hover:underline">({req.seller_email})</a>}
+                          </span>
+                        )}
                       </div>
 
                       {req.description && (
@@ -144,34 +153,41 @@ export default function RequestsPage() {
                     </div>
 
                     {/* Action buttons */}
-                    {(user.role === 'recycler' || user.role === 'refurbisher') && (
-                      <div className="flex gap-2 mt-4 pt-4 border-t border-border/30">
-                        {req.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => updateStatus(req.id, 'accepted')}
-                              className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-all duration-200"
-                            >
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => updateStatus(req.id, 'cancelled')}
-                              className="px-4 py-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-sm font-semibold hover:bg-rose-500/20 transition-all duration-200"
-                            >
-                              Decline
-                            </button>
-                          </>
-                        )}
-                        {req.status === 'accepted' && (
+                    <div className="flex gap-2 mt-4 pt-4 border-t border-border/30">
+                      {req.status === 'pending' && user.role === 'seller' && (
+                        <>
                           <button
-                            onClick={() => updateStatus(req.id, 'completed')}
-                            className="btn-primary"
+                            onClick={() => updateStatus(req.id, 'accepted')}
+                            className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-all duration-200"
                           >
-                            Mark Complete
+                            Accept
                           </button>
-                        )}
-                      </div>
-                    )}
+                          <button
+                            onClick={() => updateStatus(req.id, 'cancelled')}
+                            className="px-4 py-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-sm font-semibold hover:bg-rose-500/20 transition-all duration-200"
+                          >
+                            Decline
+                          </button>
+                        </>
+                      )}
+                      {req.status === 'accepted' && (
+                        <button
+                          onClick={() => updateStatus(req.id, 'completed')}
+                          className="btn-primary"
+                        >
+                          Mark Complete
+                        </button>
+                      )}
+                      {req.status === 'completed' && (
+                        <Link 
+                          to={`/certificate/${req.id}`}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2"
+                        >
+                          <HiOutlineDocumentDownload className="w-4 h-4" />
+                          View Certificate
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

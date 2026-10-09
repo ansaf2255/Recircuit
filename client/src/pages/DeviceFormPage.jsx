@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { HiOutlineUpload, HiOutlineDeviceMobile, HiOutlineDesktopComputer, HiOutlineLightningBolt, HiOutlineArrowRight } from 'react-icons/hi';
+import { HiOutlineUpload, HiOutlineDeviceMobile, HiOutlineDesktopComputer, HiOutlineLightningBolt, HiOutlineArrowRight, HiOutlineDatabase } from 'react-icons/hi';
 
 const categoryIcons = {
   Mobile: HiOutlineDeviceMobile,
   Laptop: HiOutlineDesktopComputer,
   'Home Appliance': HiOutlineLightningBolt,
+  'Digital Appliance': HiOutlineDatabase,
 };
 
 export default function DeviceFormPage() {

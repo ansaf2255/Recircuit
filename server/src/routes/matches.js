@@ -115,6 +115,51 @@ router.post('/:deviceId', authenticate, async (req, res) => {
   }
 });
 
+// ── POST /api/matches/claim/:deviceId — partner claims a device ──
+router.post('/claim/:deviceId', authenticate, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const partner_id = req.user.id;
+
+    if (req.user.role === 'seller') {
+      return res.status(403).json({ error: 'Sellers cannot claim devices' });
+    }
+
+    // Check device classification & existance
+    const deviceRes = await db.query(
+      `SELECT d.*, cl.result AS classification
+       FROM devices d
+       LEFT JOIN classifications cl ON cl.device_id = d.id
+       WHERE d.id = $1`,
+      [deviceId]
+    );
+    if (!deviceRes.rows.length) return res.status(404).json({ error: 'Device not found' });
+    const device = deviceRes.rows[0];
+
+    // Check if match already exists
+    const existingMatch = await db.query('SELECT id FROM matches WHERE device_id = $1', [deviceId]);
+    if (existingMatch.rows.length) {
+      return res.status(409).json({ error: 'Device has already been claimed or matched' });
+    }
+
+    const matchRes = await db.query(
+      'INSERT INTO matches (device_id, partner_id) VALUES ($1,$2) RETURNING *',
+      [deviceId, partner_id]
+    );
+    const match = matchRes.rows[0];
+    await db.query(
+      'INSERT INTO requests (match_id, status) VALUES ($1, $2)',
+      [match.id, 'pending']
+    );
+
+    res.json(match);
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Match already exists' });
+    console.error('Device claim error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── GET /api/matches — list matches for current user ─────────
 router.get('/', authenticate, async (req, res) => {
   try {

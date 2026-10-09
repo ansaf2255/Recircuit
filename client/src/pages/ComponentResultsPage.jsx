@@ -62,14 +62,14 @@ export default function ComponentResultsPage() {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mx-auto mb-3">
             <HiOutlineCheckCircle className="w-6 h-6 text-white" />
           </div>
-          <p className="text-3xl font-bold text-emerald-400">{reusable.length}</p>
+          <p className="text-3xl font-bold text-emerald-600">{reusable.length}</p>
           <p className="text-sm text-text-muted mt-1">Reusable Parts</p>
         </div>
         <div className="glass-card p-6 text-center animate-fade-up" style={{ animationDelay: '120ms' }}>
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center mx-auto mb-3">
             <HiOutlineTrash className="w-6 h-6 text-white" />
           </div>
-          <p className="text-3xl font-bold text-rose-400">{recycle.length}</p>
+          <p className="text-3xl font-bold text-rose-600">{recycle.length}</p>
           <p className="text-sm text-text-muted mt-1">Recycle Parts</p>
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function ComponentResultsPage() {
       {reusable.length > 0 && (
         <div className="glass-card overflow-hidden mb-6 !border-emerald-500/15 relative z-10 animate-fade-up" style={{ animationDelay: '160ms' }}>
           <div className="bg-emerald-500/8 px-6 py-3.5 border-b border-emerald-500/15">
-            <h2 className="text-emerald-400 font-bold flex items-center gap-2 text-sm">
+            <h2 className="text-emerald-700 font-bold flex items-center gap-2 text-sm">
               <HiOutlineCheckCircle className="w-5 h-5" />
               Reusable Parts
             </h2>
@@ -98,7 +98,7 @@ export default function ComponentResultsPage() {
       {recycle.length > 0 && (
         <div className="glass-card overflow-hidden mb-8 !border-rose-500/15 relative z-10 animate-fade-up" style={{ animationDelay: '200ms' }}>
           <div className="bg-rose-500/8 px-6 py-3.5 border-b border-rose-500/15">
-            <h2 className="text-rose-400 font-bold flex items-center gap-2 text-sm">
+            <h2 className="text-rose-700 font-bold flex items-center gap-2 text-sm">
               <HiOutlineTrash className="w-5 h-5" />
               Recycle / Material Recovery
             </h2>
@@ -116,14 +116,10 @@ export default function ComponentResultsPage() {
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3 relative z-10 animate-fade-up" style={{ animationDelay: '240ms' }}>
-        <Link to={`/devices/${deviceId}/result`} className="btn-ghost flex-1 !py-3">
+        <Link to={`/devices/${deviceId}/result`} className="btn-primary flex-1 !py-3">
           <HiOutlineArrowLeft className="w-4 h-4" />
           Back to Results
         </Link>
-        <button onClick={() => navigate(`/devices/${deviceId}/match`)} className="btn-primary flex-1 !py-3">
-          Find a Partner
-          <HiOutlineArrowRight className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

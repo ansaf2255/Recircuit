@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api';
 import { useToast } from '../context/ToastContext';
 import { HiOutlinePlus, HiOutlineTrash, HiOutlineCheckCircle, HiOutlineChartBar, HiOutlineUsers, HiOutlineCollection, HiOutlineQuestionMarkCircle } from 'react-icons/hi';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 export default function AdminPage() {
   const { addToast } = useToast();
@@ -109,6 +110,16 @@ export default function AdminPage() {
     }
   };
 
+  const deleteUser = async (id) => {
+    if (!confirm('Delete this user?')) return;
+    try {
+      await api.delete(`/admin/users/${id}`);
+      loadData();
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Failed');
+    }
+  };
+
   const tabs = [
     { key: 'analytics', label: 'Analytics', icon: HiOutlineChartBar },
     { key: 'categories', label: 'Categories', icon: HiOutlineCollection },
@@ -208,42 +219,66 @@ export default function AdminPage() {
                 {/* By Category */}
                 <div className="glass-card p-6">
                   <h3 className="font-bold text-text-primary mb-5">Devices by Category</h3>
-                  <div className="space-y-3.5">
-                    {analytics.byCategory.map((c) => (
-                      <div key={c.category} className="flex items-center justify-between">
-                        <span className="text-text-secondary text-sm font-medium">{c.category}</span>
-                        <div className="flex items-center gap-3">
-                          <div className="w-32 h-2.5 bg-surface-lighter rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-primary-500 to-cyan-500 rounded-full transition-all duration-500"
-                              style={{ width: `${analytics.totalDevices ? (c.count / analytics.totalDevices) * 100 : 0}%` }}
-                            />
-                          </div>
-                          <span className="text-text-primary font-bold text-sm w-8 text-right">{c.count}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="h-[250px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={analytics.byCategory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                        <XAxis dataKey="category" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <RechartsTooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                        <Bar dataKey="count" fill="#0d9488" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
 
                 {/* By Outcome */}
                 <div className="glass-card p-6">
                   <h3 className="font-bold text-text-primary mb-5">Classification Outcomes</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {analytics.byOutcome.map((o) => {
-                      const colors = {
-                        reuse: 'text-emerald-400 bg-emerald-500/8 border-emerald-500/15',
-                        resell: 'text-cyan-400 bg-cyan-500/8 border-cyan-500/15',
-                        refurbish: 'text-amber-400 bg-amber-500/8 border-amber-500/15',
-                        recycle: 'text-rose-400 bg-rose-500/8 border-rose-500/15',
-                      };
-                      return (
-                        <div key={o.result} className={`p-5 rounded-2xl text-center border ${colors[o.result] || ''}`}>
-                          <p className="text-2xl font-bold">{o.count}</p>
-                          <p className="text-sm capitalize mt-1 opacity-80">{o.result}</p>
-                        </div>
-                      );
-                    })}
+                  <div className="flex flex-col sm:flex-row items-center gap-8">
+                    <div className="h-[200px] w-full sm:w-[200px] flex-shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={analytics.byOutcome}
+                            dataKey="count"
+                            nameKey="result"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                          >
+                            {analytics.byOutcome.map((entry, index) => {
+                              const colors = {
+                                reuse: '#10b981',
+                                resell: '#06b6d4',
+                                refurbish: '#f59e0b',
+                                recycle: '#f43f5e',
+                              };
+                              return <Cell key={`cell-${index}`} fill={colors[entry.result] || '#64748b'} stroke="transparent" />;
+                            })}
+                          </Pie>
+                          <RechartsTooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                      {analytics.byOutcome.map((o) => {
+                        const colors = {
+                          reuse: 'text-emerald-700 bg-emerald-500/10 border-emerald-500/20',
+                          resell: 'text-cyan-700 bg-cyan-500/10 border-cyan-500/20',
+                          refurbish: 'text-amber-700 bg-amber-500/10 border-amber-500/20',
+                          recycle: 'text-rose-700 bg-rose-500/10 border-rose-500/20',
+                        };
+                        return (
+                          <div key={o.result} className={`p-4 rounded-xl text-center border ${colors[o.result] || ''}`}>
+                            <p className="text-xl font-bold">{o.count}</p>
+                            <p className="text-xs font-semibold capitalize mt-1 opacity-80">{o.result}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -484,6 +519,13 @@ export default function AdminPage() {
                           Verify
                         </button>
                       )}
+                      <button 
+                        onClick={() => deleteUser(u.id)}
+                        className="p-2 text-text-muted hover:text-rose-400 transition-colors rounded-xl hover:bg-rose-500/10"
+                        title="Delete User"
+                      >
+                        <HiOutlineTrash className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ))}

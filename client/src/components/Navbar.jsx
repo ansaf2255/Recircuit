@@ -18,12 +18,12 @@ export default function Navbar() {
   const linkClass = (path) =>
     `flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
       isActive(path)
-        ? 'bg-primary-500/15 text-primary-400'
-        : 'text-text-muted hover:text-text-primary hover:bg-white/[0.04]'
+        ? 'bg-primary-500/15 text-primary-600'
+        : 'text-text-muted hover:text-text-primary hover:bg-surface-lighter'
     }`;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-surface/70 backdrop-blur-2xl">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/60 bg-surface/80 backdrop-blur-2xl">
       <div className="page-container !py-0">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -48,6 +48,13 @@ export default function Navbar() {
               </Link>
             )}
 
+            {user.role !== 'seller' && (
+              <Link to="/marketplace" className={linkClass('/marketplace')}>
+                <HiOutlineClipboardList className="w-4 h-4" />
+                <span className="hidden sm:inline">Marketplace</span>
+              </Link>
+            )}
+
             <Link to="/requests" className={linkClass('/requests')}>
               <HiOutlineClipboardList className="w-4 h-4" />
               <span className="hidden sm:inline">Requests</span>
@@ -61,7 +68,7 @@ export default function Navbar() {
             )}
 
             {/* User info + Logout */}
-            <div className="flex items-center gap-3 ml-3 pl-3 border-l border-white/[0.06]">
+            <div className="flex items-center gap-3 ml-3 pl-3 border-l border-border/60">
               <div className="hidden sm:flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center text-white text-xs font-bold">
                   {user.name?.charAt(0)?.toUpperCase()}

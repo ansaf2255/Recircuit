@@ -44,6 +44,43 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
+// ── GET /api/devices/available — marketplace for partners ────
+router.get('/available', authenticate, async (req, res) => {
+  try {
+    const { category_id } = req.query;
+    
+    // Only recyclers/refurbishers/admins can browse marketplace
+    if (req.user.role === 'seller') {
+      return res.status(403).json({ error: 'Sellers cannot browse the marketplace' });
+    }
+
+    let sql = `
+      SELECT d.*, c.name AS category_name, u.name AS user_name,
+             cl.result AS classification
+      FROM devices d
+      JOIN categories c ON c.id = d.category_id
+      JOIN users u ON u.id = d.user_id
+      JOIN classifications cl ON cl.device_id = d.id
+      LEFT JOIN matches m ON m.device_id = d.id
+      WHERE m.id IS NULL
+    `;
+    const params = [];
+    
+    if (category_id) {
+      params.push(category_id);
+      sql += ` AND d.category_id = $${params.length}`;
+    }
+    
+    sql += ' ORDER BY d.created_at DESC';
+
+    const result = await db.query(sql, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('List available devices error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── GET /api/devices/:id ─────────────────────────────────────
 router.get('/:id', authenticate, async (req, res) => {
   try {
@@ -98,6 +135,31 @@ router.delete('/:id', authenticate, async (req, res) => {
     res.json({ message: 'Device deleted' });
   } catch (err) {
     console.error('Delete device error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── PATCH /api/devices/:id — edit device details ───────────────
+router.patch('/:id', authenticate, async (req, res) => {
+  try {
+    const { brand, model, description, location } = req.body;
+    
+    // Ensure the device belongs to the user
+    const check = await db.query('SELECT id FROM devices WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    if (!check.rows.length) return res.status(404).json({ error: 'Device not found or not yours' });
+
+    const result = await db.query(
+      `UPDATE devices SET 
+        brand = COALESCE($1, brand), 
+        model = COALESCE($2, model), 
+        description = COALESCE($3, description), 
+        location = COALESCE($4, location) 
+       WHERE id = $5 RETURNING *`,
+      [brand, model, description, location, req.params.id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Update device error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
