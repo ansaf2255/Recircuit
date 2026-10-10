@@ -5,6 +5,14 @@
  * rule-based component assessment engine.
  */
 require('dotenv').config();
+
+const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
+const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v]);
+if (missingEnvVars.length > 0) {
+  console.error(`Fatal Error: Missing required environment variable(s): ${missingEnvVars.join(', ')}`);
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
