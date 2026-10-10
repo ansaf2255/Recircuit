@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useToast } from '../context/ToastContext';
-import { HiOutlineUser, HiOutlineLocationMarker, HiOutlineCheckCircle, HiOutlineArrowLeft } from 'react-icons/hi';
+import { 
+  HiOutlineUser, 
+  HiOutlineLocationMarker, 
+  HiOutlineCheckCircle, 
+  HiOutlineArrowLeft,
+  HiOutlineShieldCheck
+} from 'react-icons/hi';
 
 export default function MatchPage() {
   const { addToast } = useToast();
@@ -22,7 +28,7 @@ export default function MatchPage() {
       const res = await api.get(`/matches/${deviceId}/candidates`);
       setCandidates(res.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load candidates.');
+      setError(err.response?.data?.error || 'Failed to load eligible partners.');
     } finally {
       setLoading(false);
     }
@@ -32,9 +38,10 @@ export default function MatchPage() {
     setMatching(true);
     try {
       await api.post(`/matches/${deviceId}`, { partner_id: partnerId });
+      addToast('Pickup request created! Track status in Orders & Requests.');
       navigate('/requests');
     } catch (err) {
-      addToast(err.response?.data?.error || 'Failed to match.');
+      addToast(err.response?.data?.error || 'Failed to connect with partner.');
       setMatching(false);
     }
   };
@@ -42,18 +49,18 @@ export default function MatchPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="page-container max-w-2xl text-center">
-        <div className="glass-card p-10">
-          <p className="text-rose-400 mb-4">{error}</p>
-          <Link to={`/devices/${deviceId}/result`} className="text-primary-400 hover:text-primary-300 font-medium text-sm">
-            ← Back to Results
+      <div className="page-container max-w-xl text-center py-12">
+        <div className="glass-card p-8 bg-white">
+          <p className="text-rose-700 text-sm font-medium mb-4">{error}</p>
+          <Link to={`/devices/${deviceId}/result`} className="btn-ghost !text-xs !py-2 inline-flex items-center gap-1.5">
+            <HiOutlineArrowLeft className="w-4 h-4" /> Back to Assessment Results
           </Link>
         </div>
       </div>
@@ -61,44 +68,49 @@ export default function MatchPage() {
   }
 
   return (
-    <div className="page-container max-w-3xl relative">
-      <div className="glow-orb w-[350px] h-[350px] bg-primary-600/10 -top-[50px] -right-[100px]" />
-
-      <div className="page-header relative z-10 animate-fade-up">
-        <Link to={`/devices/${deviceId}/result`} className="text-text-muted hover:text-text-secondary text-sm flex items-center gap-1.5 mb-4">
+    <div className="page-container max-w-3xl">
+      {/* Header */}
+      <div className="page-header animate-fade-up">
+        <Link to={`/devices/${deviceId}/result`} className="text-text-muted hover:text-text-secondary text-xs flex items-center gap-1.5 mb-3 transition-colors">
           <HiOutlineArrowLeft className="w-4 h-4" />
-          Back to device result
+          Back to device assessment
         </Link>
-        <h1 className="page-title gradient-text">Select a Partner</h1>
-        <p className="page-subtitle">Choose a verified recycler or refurbisher to handle your device.</p>
+        <h1 className="page-title text-text-primary">Certified Logistics Partners</h1>
+        <p className="page-subtitle">
+          Select a verified enterprise refurbisher or certified recycler to coordinate hardware pickup.
+        </p>
       </div>
 
-      <div className="space-y-4 relative z-10">
+      <div className="space-y-3">
         {candidates.map((partner, i) => (
           <div
             key={partner.id}
-            className="glass-card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 animate-fade-up"
-            style={{ animationDelay: `${(i + 1) * 60}ms` }}
+            className="glass-card p-5 sm:p-6 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-up hover:border-primary-300 transition-all"
+            style={{ animationDelay: `${(i + 1) * 40}ms` }}
           >
             <div className="flex items-start gap-4">
-              {/* Avatar */}
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-emerald-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+              <div className="w-11 h-11 rounded-full bg-[#d3e3fd] text-[#041e49] flex items-center justify-center font-bold text-base flex-shrink-0 border border-primary-100">
                 {partner.name?.charAt(0)?.toUpperCase()}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  {partner.name}
-                  <HiOutlineCheckCircle className="w-5 h-5 text-emerald-500" title="Verified Partner" />
-                </h3>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-sm text-text-secondary">
-                  <span className="flex items-center gap-1.5">
-                    <HiOutlineUser className="w-3.5 h-3.5" />
-                    <span className="capitalize">{partner.role}</span>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-text-primary">
+                    {partner.name}
+                  </h3>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    <HiOutlineShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                    Verified Partner
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-text-secondary">
+                  <span className="capitalize text-text-muted">
+                    Specialization: <strong className="text-text-primary font-medium">{partner.role}</strong>
                   </span>
                   {partner.location && (
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1 text-text-muted">
                       <HiOutlineLocationMarker className="w-3.5 h-3.5" />
-                      {partner.location}
+                      <strong className="text-text-primary font-medium">{partner.location}</strong>
                     </span>
                   )}
                 </div>
@@ -108,7 +120,7 @@ export default function MatchPage() {
             <button
               onClick={() => selectPartner(partner.id)}
               disabled={matching}
-              className="btn-primary w-full sm:w-auto flex-shrink-0"
+              className="btn-primary w-full sm:w-auto !text-xs !py-2.5 flex-shrink-0 cursor-pointer"
             >
               Select Partner
             </button>
@@ -116,12 +128,17 @@ export default function MatchPage() {
         ))}
 
         {candidates.length === 0 && (
-          <div className="glass-card p-12 text-center animate-fade-up">
-            <div className="w-16 h-16 rounded-2xl bg-surface-lighter flex items-center justify-center mx-auto mb-4">
-              <HiOutlineUser className="w-8 h-8 text-text-muted" />
+          <div className="glass-card p-12 text-center bg-white animate-fade-up">
+            <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center mx-auto mb-3">
+              <HiOutlineUser className="w-6 h-6 text-text-muted" />
             </div>
-            <h2 className="text-lg font-bold text-text-primary mb-2">No partners available</h2>
-            <p className="text-text-secondary text-sm">No verified partners found for your device at this time.</p>
+            <h2 className="text-base font-bold text-text-primary mb-1">No verified partners in this area yet</h2>
+            <p className="text-text-secondary text-xs max-w-sm mx-auto mb-4">
+              You can explore our open marketplace to let regional refurbishers and certified recyclers browse your device.
+            </p>
+            <Link to="/marketplace" className="btn-primary !text-xs !py-2">
+              Explore Open Marketplace
+            </Link>
           </div>
         )}
       </div>

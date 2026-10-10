@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { HiOutlineCheckCircle } from 'react-icons/hi';
+import { 
+  HiOutlineCheckCircle, 
+  HiOutlinePrinter, 
+  HiOutlineArrowLeft,
+  HiOutlineShieldCheck,
+  HiOutlineQrcode
+} from 'react-icons/hi';
 
 export default function CertificatePage() {
   const { id } = useParams();
@@ -15,57 +21,109 @@ export default function CertificatePage() {
     });
   }, [id]);
 
-  if (!request) return (
-    <div className="flex items-center justify-center min-h-screen bg-white">
-      <div className="w-12 h-12 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-    </div>
-  );
+  if (!request) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-surface">
+        <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const certNumber = `RC-${new Date(request.created_at).getFullYear()}-${String(request.id).padStart(6, '0')}`;
 
   return (
-    <div className="min-h-screen bg-white text-slate-800 p-4 sm:p-10 flex flex-col items-center justify-center font-serif relative">
-      {/* Non-print controls */}
-      <div className="w-full max-w-5xl flex justify-between items-center mb-8 print:hidden">
-        <button onClick={() => navigate(-1)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-sans font-medium">
-          ← Back to Requests
+    <div className="min-h-screen bg-surface py-10 px-4 print:p-0 print:bg-white flex flex-col items-center justify-center">
+      {/* Non-print toolbar */}
+      <div className="w-full max-w-4xl flex justify-between items-center mb-6 print:hidden">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="btn-ghost !text-xs !py-2 flex items-center gap-1.5 cursor-pointer"
+        >
+          <HiOutlineArrowLeft className="w-4 h-4" />
+          Back to Orders
         </button>
-        <button onClick={() => window.print()} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors font-sans font-medium shadow-lg shadow-emerald-500/30">
+        <button 
+          onClick={() => window.print()} 
+          className="btn-primary !text-xs !py-2 flex items-center gap-1.5 cursor-pointer"
+        >
+          <HiOutlinePrinter className="w-4 h-4" />
           Print / Save as PDF
         </button>
       </div>
 
-      <div className="border-[16px] border-emerald-700 p-8 sm:p-16 w-full max-w-5xl text-center bg-emerald-50/30 shadow-2xl relative overflow-hidden my-16">
-        <div className="absolute inset-0 border-[4px] border-emerald-400/50 m-2" />
-        
-        <HiOutlineCheckCircle className="w-24 h-24 text-emerald-600 mx-auto mb-8 relative z-10" />
-        
-        <h1 className="text-4xl sm:text-5xl font-bold text-emerald-800 tracking-wider uppercase mb-10 relative z-10 font-serif">
-          Certificate of Eco-Responsibility
-        </h1>
-        
-        <p className="text-xl text-slate-600 mb-4 relative z-10 italic">This is proudly presented to</p>
-        <h2 className="text-3xl sm:text-5xl font-bold text-slate-800 mb-10 border-b-2 border-emerald-300 inline-block px-12 pb-3 relative z-10 font-serif">
-          {request.seller_name}
-        </h2>
-        
-        <p className="text-lg sm:text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed mb-16 relative z-10">
-          For their outstanding commitment to environmental sustainability by successfully diverting their 
-          <strong className="text-slate-900 mx-2">{request.brand} {request.model} ({request.category_name})</strong>
-          from landfill. This device has been officially processed for <strong className="uppercase text-emerald-700 font-bold ml-1">{request.classification}</strong>.
-        </p>
-
-        <div className="flex flex-col sm:flex-row justify-between items-end mt-10 px-4 sm:px-16 relative z-10 gap-10">
-          <div className="text-center w-full sm:w-auto">
-            <div className="border-b border-slate-400 w-48 sm:w-64 mx-auto mb-3 pb-2 text-xl font-semibold text-slate-800">
-              {new Date(request.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+      {/* Official Certificate Card */}
+      <div className="w-full max-w-4xl bg-white border border-[#dadce0] rounded-2xl shadow-sm p-10 sm:p-14 relative print:border-none print:shadow-none print:m-0 text-text-primary">
+        {/* Certificate Header */}
+        <div className="flex items-start justify-between border-b border-border pb-8 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
+              <HiOutlineShieldCheck className="w-7 h-7" />
             </div>
-            <p className="text-sm text-slate-500 uppercase tracking-widest font-sans font-medium">Date</p>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
+                Certificate of Sustainable Processing
+              </h1>
+              <p className="text-xs text-text-muted mt-0.5">
+                Official Verification of Electronics Recovery & Diverted E-Waste
+              </p>
+            </div>
           </div>
-          
-          <div className="text-center w-full sm:w-auto">
-            <div className="border-b border-slate-400 w-48 sm:w-64 mx-auto mb-3 pb-2 text-2xl font-bold italic text-emerald-700 font-serif">
-              ReCircuit Platform
+
+          <div className="text-right">
+            <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Serial Number</div>
+            <div className="font-mono text-xs font-bold text-text-primary mt-0.5">{certNumber}</div>
+          </div>
+        </div>
+
+        {/* Certificate Body */}
+        <div className="text-center py-6">
+          <p className="text-xs uppercase tracking-widest text-text-muted font-semibold mb-2">This is to certify that</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight mb-4">
+            {request.seller_name}
+          </h2>
+          <p className="text-sm text-text-secondary max-w-2xl mx-auto leading-relaxed">
+            has responsibly surrendered and processed the following electronics hardware under certified circular economy standards:
+          </p>
+
+          <div className="my-8 p-6 bg-surface rounded-xl border border-border inline-block text-left w-full max-w-lg">
+            <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-xs">
+              <div>
+                <span className="text-text-muted block text-[11px]">Device Hardware</span>
+                <strong className="text-text-primary font-semibold">{request.brand} {request.model}</strong>
+              </div>
+              <div>
+                <span className="text-text-muted block text-[11px]">Hardware Category</span>
+                <strong className="text-text-primary font-semibold">{request.category_name}</strong>
+              </div>
+              <div>
+                <span className="text-text-muted block text-[11px]">Processing Outcome</span>
+                <span className="badge badge-reuse uppercase text-[11px] font-bold mt-0.5">
+                  {request.classification}
+                </span>
+              </div>
+              <div>
+                <span className="text-text-muted block text-[11px]">Certified Partner</span>
+                <strong className="text-text-primary font-semibold">{request.partner_name}</strong>
+              </div>
             </div>
-            <p className="text-sm text-slate-500 uppercase tracking-widest font-sans font-medium">Authorized by</p>
+          </div>
+
+          <p className="text-xs text-text-muted max-w-xl mx-auto leading-normal">
+            By diverting this device from landfill, toxic heavy metals and scarce earth elements were recovered and reintegrated into the circular technology supply chain.
+          </p>
+        </div>
+
+        {/* Footer with Signatures & Hash */}
+        <div className="mt-10 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-text-secondary">
+          <div>
+            <div className="font-semibold text-text-primary">
+              Issued: {new Date(request.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <div className="text-[11px] text-text-muted mt-0.5">Authorized by ReCircuit Electronic Recovery Network</div>
+          </div>
+
+          <div className="flex items-center gap-2 text-text-muted text-[11px] font-mono bg-surface px-3 py-1.5 rounded-lg border border-border">
+            <span>VERIFIED DIGITAL LEDGER RECORD</span>
           </div>
         </div>
       </div>

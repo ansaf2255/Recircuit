@@ -183,10 +183,10 @@ async function seed() {
       `INSERT INTO users (name, email, password_hash, role, location, verified)
        VALUES ($1,$2,$3,$4,$5,$6)
        ON CONFLICT (email) DO NOTHING`,
-      ['ReNew Electronics', 'refurbisher@recircuit.com', refurbHash, 'refurbisher', 'Delhi', true],
+      ['ReNew Electronics', 'refurbisher@recircuit.com', refurbHash, 'seller', 'Delhi', true],
     );
 
-    console.log('  Default users seeded (admin / recycler / refurbisher)');
+    console.log('  Default users seeded (admin / recycler / seller: Refurbisher / Consumer)');
 
     await client.query('COMMIT');
     console.log('✅ Seed complete.');

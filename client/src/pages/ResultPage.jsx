@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { HiOutlineCheckCircle, HiOutlineRefresh, HiOutlineShoppingCart, HiOutlineCog, HiOutlineTrash, HiOutlineArrowRight, HiOutlineArrowLeft } from 'react-icons/hi';
@@ -6,39 +6,31 @@ import { HiOutlineCheckCircle, HiOutlineRefresh, HiOutlineShoppingCart, HiOutlin
 const resultConfig = {
   reuse: {
     icon: HiOutlineCheckCircle,
-    title: 'Ready to Reuse',
-    description: 'This device is in great condition and can be used as-is!',
-    gradient: 'from-emerald-500 to-emerald-600',
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-700',
-    border: 'border-emerald-500/20',
+    title: 'Ready for Direct Reuse',
+    description: 'Hardware passed diagnostic tests with high operational integrity. Suitable for immediate redeployment.',
+    iconBox: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   },
   resell: {
     icon: HiOutlineShoppingCart,
-    title: 'Ready to Resell',
-    description: 'Minor issues only — this device has great resale value.',
-    gradient: 'from-cyan-500 to-cyan-600',
-    bg: 'bg-cyan-500/10',
-    text: 'text-cyan-700',
-    border: 'border-cyan-500/20',
+    title: 'Commercial Resale Viability',
+    description: 'Diagnostic assessment confirms hardware operational integrity. Suitable for verified refurbished marketplace listing.',
+    iconBox: 'bg-blue-50 text-blue-700 border border-blue-200',
+    badge: 'bg-blue-50 text-blue-800 border-blue-200',
   },
   refurbish: {
     icon: HiOutlineCog,
-    title: 'Needs Refurbishment',
-    description: 'This device needs some repairs but is worth fixing.',
-    gradient: 'from-amber-500 to-amber-600',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-700',
-    border: 'border-amber-500/20',
+    title: 'Refurbishment Required',
+    description: 'Hardware displays repairable screen or chassis flaws. Requires certified parts refurbishment before resale.',
+    iconBox: 'bg-amber-50 text-amber-700 border border-amber-200',
+    badge: 'bg-amber-50 text-amber-800 border-amber-200',
   },
   recycle: {
     icon: HiOutlineTrash,
-    title: 'Recycle Responsibly',
-    description: 'This device should be recycled to recover valuable materials.',
-    gradient: 'from-rose-500 to-rose-600',
-    bg: 'bg-rose-500/10',
-    text: 'text-rose-700',
-    border: 'border-rose-500/20',
+    title: 'Certified Material Recovery',
+    description: 'Device integrity or safety thresholds recommend modular component harvesting and responsible metals recycling.',
+    iconBox: 'bg-rose-50 text-rose-700 border border-rose-200',
+    badge: 'bg-rose-50 text-rose-800 border-rose-200',
   },
 };
 
@@ -103,40 +95,38 @@ export default function ResultPage() {
   const Icon = config.icon;
 
   return (
-    <div className="page-container max-w-2xl relative">
-      <div className="glow-orb w-[400px] h-[400px] bg-primary-600/8 top-0 left-[50%] -translate-x-1/2" />
-
+    <div className="page-container max-w-2xl">
       {/* Back link */}
-      <Link to={`/devices/${deviceId}`} className="text-text-muted hover:text-text-secondary text-sm flex items-center gap-1.5 mb-6 relative z-10">
+      <Link to={`/devices/${deviceId}`} className="text-text-muted hover:text-text-secondary text-xs flex items-center gap-1.5 mb-5 transition-colors">
         <HiOutlineArrowLeft className="w-4 h-4" />
-        Back to device
+        Back to device listing
       </Link>
 
       {/* Result Card */}
-      <div className="glass-card p-8 sm:p-10 text-center mb-6 relative z-10 animate-fade-up">
-        <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${config.gradient} flex items-center justify-center mx-auto mb-6 pulse-glow`}>
-          <Icon className="w-10 h-10 text-white" />
+      <div className="glass-card p-8 sm:p-10 text-center mb-6 bg-white border border-border shadow-xs animate-fade-up">
+        <div className={`w-16 h-16 rounded-2xl ${config.iconBox} flex items-center justify-center mx-auto mb-5 shadow-xs`}>
+          <Icon className="w-8 h-8" />
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary mb-2 tracking-tight">{config.title}</h1>
-        <p className="text-text-secondary mb-6 max-w-sm mx-auto">{config.description}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-2 tracking-tight">{config.title}</h1>
+        <p className="text-text-secondary text-xs sm:text-sm mb-5 max-w-md mx-auto leading-relaxed">{config.description}</p>
 
-        <div className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl ${config.bg} border ${config.border}`}>
-          <span className={`text-sm font-bold uppercase tracking-wide ${config.text}`}>
+        <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full ${config.badge}`}>
+          <span className="text-xs font-bold uppercase tracking-wider">
             {classification.result}
           </span>
           {classification.score !== null && (
-            <span className="text-text-muted text-sm">
-              — Score: {classification.score}
+            <span className="text-xs opacity-80">
+              • Diagnostic Score: {classification.score}/100
             </span>
           )}
         </div>
       </div>
 
       {/* Reasoning */}
-      <div className="glass-card p-6 sm:p-8 mb-6 relative z-10 animate-fade-up" style={{ animationDelay: '100ms' }}>
+      <div className="glass-card p-6 sm:p-8 mb-6 relative z-10 animate-fade-up">
         <h2 className="text-lg font-bold text-text-primary mb-3">Assessment Reasoning</h2>
-        <pre className="text-sm text-text-secondary whitespace-pre-wrap font-mono bg-surface/60 p-4 rounded-xl leading-relaxed">
+        <pre className="text-sm text-text-secondary whitespace-pre-wrap font-mono bg-surface p-4 rounded-xl leading-relaxed border border-border">
           {classification.reasoning}
         </pre>
       </div>
@@ -154,10 +144,10 @@ export default function ResultPage() {
         {components.length > 0 && classification.result === 'recycle' && !hasAssessedComponents && (
           <Link
             to={`/devices/${deviceId}/components`}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-semibold rounded-2xl transition-all shadow-lg shadow-rose-500/25 animate-pulse"
+            className="btn-primary flex-1 !py-3 justify-center !bg-rose-700 hover:!bg-rose-800"
           >
             <HiOutlineCog className="w-5 h-5" />
-            Required: Assess Components
+            Assess Salvage Components (Required)
             <HiOutlineArrowRight className="w-4 h-4" />
           </Link>
         )}
@@ -171,14 +161,19 @@ export default function ResultPage() {
         )}
 
         {(classification.result !== 'recycle' || hasAssessedComponents) && (
-          <div className="flex-1 flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-lighter border border-border/50">
-            <span className="text-sm font-medium text-text-secondary flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
-              Waiting for a partner to claim this device...
-            </span>
-            <p className="text-xs text-text-muted mt-1 text-center">
-              Check your Requests tab for updates.
-            </p>
+          <div className="flex-1 flex flex-col sm:flex-row items-center gap-3">
+            <button
+              onClick={handleMatch}
+              className="btn-primary flex-1 !py-3 w-full justify-center cursor-pointer"
+            >
+              Find Nearby Partner <HiOutlineArrowRight className="w-4 h-4" />
+            </button>
+            <Link
+              to="/marketplace"
+              className="btn-ghost flex-1 !py-3 w-full justify-center"
+            >
+              Explore Marketplace
+            </Link>
           </div>
         )}
       </div>

@@ -1,21 +1,36 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { HiOutlineArrowRight, HiOutlineLocationMarker } from 'react-icons/hi';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { 
+  HiOutlineArrowRight, 
+  HiOutlineArrowLeft,
+  HiOutlineLocationMarker,
+  HiOutlineShoppingCart,
+  HiOutlineCheckCircle,
+  HiOutlineTrash,
+  HiOutlinePencilAlt
+} from 'react-icons/hi';
 
-const classColors = {
-  reuse: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  resell: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
-  refurbish: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  recycle: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+const classBadges = {
+  reuse: 'badge-reuse',
+  resell: 'badge-resell',
+  refurbish: 'badge-refurbish',
+  recycle: 'badge-recycle',
 };
 
 export default function DeviceDetailPage() {
   const { deviceId } = useParams();
+  const { user } = useAuth();
+  const { addToast } = useToast();
+  const navigate = useNavigate();
+
   const [device, setDevice] = useState(null);
   const [classification, setClassification] = useState(null);
   const [componentResults, setComponentResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -31,10 +46,12 @@ export default function DeviceDetailPage() {
         setClassification(classRes.data);
       } catch {}
 
-      try {
-        const compRes = await api.get(`/components/${deviceId}/results`);
-        setComponentResults(compRes.data);
-      } catch {}
+      if (user?.role !== 'recycler') {
+        try {
+          const compRes = await api.get(`/components/${deviceId}/results`);
+          setComponentResults(compRes.data);
+        } catch {}
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -42,86 +59,233 @@ export default function DeviceDetailPage() {
     }
   };
 
+  const handleClaim = async () => {
+    setClaiming(true);
+    try {
+      await api.post(`/matches/claim/${deviceId}`);
+      addToast('Device successfully requested! Moved to your Requests dashboard.');
+      navigate('/requests');
+    } catch (err) {
+      addToast(err.response?.data?.error || 'Failed to claim device.');
+      setClaiming(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
 
-  if (!device) return <p className="text-center text-text-secondary py-8">Device not found.</p>;
+  if (!device) {
+    return (
+      <div className="page-container max-w-xl text-center py-16">
+        <h2 className="text-lg font-bold text-text-primary">Device Not Found</h2>
+        <p className="text-xs text-text-muted mt-1">This listing may have been removed or claimed.</p>
+        <Link to="/marketplace" className="btn-primary !text-xs !py-2 mt-4 inline-flex">
+          Back to Marketplace
+        </Link>
+      </div>
+    );
+  }
+
+  const isOwner = user?.id === device.user_id;
+  const isTargetRecycler = classification?.result === 'recycle';
+  const canClaim = !isOwner && (
+    user?.role === 'admin' ||
+    (user?.role === 'recycler' && isTargetRecycler) ||
+    ((user?.role === 'refurbisher' || user?.role === 'seller') && !isTargetRecycler)
+  );
 
   return (
-    <div className="page-container max-w-3xl relative">
-      <div className="glow-orb w-[350px] h-[350px] bg-primary-600/8 top-0 right-0" />
-
-      <div className="glass-card overflow-hidden relative z-10 animate-fade-up">
-        {/* Hero image */}
-        {device.image_url && (
-          <div className="w-full h-60 overflow-hidden">
-            <img src={device.image_url} alt={device.model} className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        <div className="p-6 sm:p-8">
-          {/* Title row */}
-          <div className="flex items-start justify-between gap-4 mb-5">
-            <div>
-              <h1 className="text-2xl font-bold text-text-primary tracking-tight">{device.brand} {device.model}</h1>
-              <p className="text-text-muted text-sm mt-1">{device.category_name}</p>
-            </div>
-            {classification && (
-              <span className={`badge capitalize ${classColors[classification.result] || ''}`}>
-                {classification.result}
-              </span>
-            )}
-          </div>
-
-          {/* Meta info */}
-          <div className="space-y-2 mb-6">
-            {device.description && (
-              <p className="text-text-secondary text-sm leading-relaxed">{device.description}</p>
-            )}
-            {device.location && (
-              <p className="text-sm text-text-muted flex items-center gap-1.5">
-                <HiOutlineLocationMarker className="w-4 h-4" /> {device.location}
-              </p>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-3">
-            {!classification && (
-              <Link to={`/devices/${deviceId}/questionnaire`} className="btn-primary">
-                Start Assessment <HiOutlineArrowRight className="w-4 h-4" />
-              </Link>
-            )}
-            {classification && (
-              <Link to={`/devices/${deviceId}/result`} className="btn-primary">
-                View Results <HiOutlineArrowRight className="w-4 h-4" />
-              </Link>
-            )}
-          </div>
-        </div>
+    <div className="page-container max-w-4xl">
+      {/* Back button */}
+      <div className="mb-5">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-xs text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <HiOutlineArrowLeft className="w-4 h-4" />
+          Back
+        </button>
       </div>
 
-      {/* Component Results */}
-      {componentResults.length > 0 && (
-        <div className="glass-card mt-6 p-6 sm:p-8 relative z-10 animate-fade-up" style={{ animationDelay: '100ms' }}>
-          <h2 className="text-lg font-bold text-text-primary mb-4">Component Breakdown</h2>
-          <div className="space-y-2">
-            {componentResults.map((r) => (
-              <div key={r.id} className="flex items-center justify-between py-3 px-4 rounded-xl bg-surface-light/60">
-                <span className="text-text-primary text-sm font-medium">{r.component_name}</span>
-                <span className={`badge capitalize ${r.result === 'reusable' ? classColors.reuse : classColors.recycle}`}>
-                  {r.result}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Photos & Details */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* Photos */}
+          <div className="glass-card overflow-hidden bg-white">
+            {device.images && device.images.length > 0 ? (
+              <div className="w-full">
+                <div className="h-72 w-full bg-surface overflow-hidden">
+                  <img
+                    src={device.images[0]}
+                    alt={`${device.brand} ${device.model}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {device.images.length > 1 && (
+                  <div className="flex gap-2 p-3 bg-surface border-t border-border overflow-x-auto">
+                    {device.images.map((img, idx) => (
+                      <img
+                        key={idx}
+                        src={img}
+                        alt={`Photo ${idx + 1}`}
+                        className="w-16 h-16 rounded-lg object-cover border border-border flex-shrink-0"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="h-60 bg-surface flex items-center justify-center text-text-muted text-xs">
+                No photos provided for this listing.
+              </div>
+            )}
+          </div>
+
+          {/* Description & Overview */}
+          <div className="glass-card p-6 bg-white">
+            <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider mb-3">
+              Listing Description
+            </h2>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              {device.description || 'No additional comments provided by the seller.'}
+            </p>
+
+            <div className="mt-5 pt-4 border-t border-border grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-text-muted block">Category</span>
+                <span className="font-semibold text-text-primary">{device.category_name}</span>
+              </div>
+              <div>
+                <span className="text-text-muted block">Listed Date</span>
+                <span className="font-semibold text-text-primary">{new Date(device.created_at).toLocaleDateString()}</span>
+              </div>
+              <div>
+                <span className="text-text-muted block">Seller</span>
+                <span className="font-semibold text-text-primary">{device.user_name || 'Verified User'}</span>
+              </div>
+              <div>
+                <span className="text-text-muted block">Location</span>
+                <span className="font-semibold text-text-primary flex items-center gap-1 truncate">
+                  <HiOutlineLocationMarker className="w-3.5 h-3.5 text-text-muted" />
+                  {device.location || 'Not specified'}
                 </span>
               </div>
-            ))}
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Right Column: Diagnostics, Classification & Action */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* Classification Outcome Card */}
+          <div className="glass-card p-6 bg-white">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                  Hardware Identification
+                </span>
+                <h1 className="text-xl font-bold text-text-primary leading-tight mt-0.5">
+                  {device.brand} {device.model}
+                </h1>
+              </div>
+
+              {classification ? (
+                <span className={`badge capitalize text-xs shadow-xs ${classBadges[classification.result] || ''}`}>
+                  {classification.result}
+                </span>
+              ) : (
+                <span className="badge bg-amber-50 text-amber-800 border-amber-200 text-xs">
+                  Pending Assessment
+                </span>
+              )}
+            </div>
+
+            {classification?.score !== undefined && classification?.score !== null && (
+              <div className="p-3 rounded-xl bg-surface border border-border mb-4 text-xs flex items-center justify-between">
+                <span className="text-text-secondary">Diagnostic Health Score:</span>
+                <strong className="text-text-primary font-bold text-sm">{classification.score} / 100</strong>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              {isOwner ? (
+                <>
+                  {!classification ? (
+                    <Link
+                      to={`/devices/${deviceId}/questionnaire`}
+                      className="btn-primary w-full justify-center !text-xs !py-3"
+                    >
+                      Complete Condition Assessment <HiOutlineArrowRight className="w-4 h-4" />
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        to={`/devices/${deviceId}/result`}
+                        className="btn-primary w-full justify-center !text-xs !py-2.5"
+                      >
+                        View Assessment Report
+                      </Link>
+                      <Link
+                        to={`/devices/${deviceId}/match`}
+                        className="btn-ghost w-full justify-center !text-xs !py-2.5"
+                      >
+                        Find Matching Logistics Partner
+                      </Link>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {canClaim ? (
+                    <button
+                      onClick={handleClaim}
+                      disabled={claiming}
+                      className="btn-primary w-full justify-center !text-xs !py-3 cursor-pointer"
+                    >
+                      {claiming ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <HiOutlineShoppingCart className="w-4 h-4" />
+                          Purchase / Claim Device
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-surface rounded-xl border border-border text-[11px] text-text-muted text-center">
+                      {isTargetRecycler ? 'Available for certified recyclers.' : 'Available for consumers & refurbishers.'}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Salvage Component Breakdown (Consumers & Refurbishers only) */}
+          {componentResults.length > 0 && user?.role !== 'recycler' && (
+            <div className="glass-card p-5 bg-white">
+              <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-3">
+                Salvage Component Assessment
+              </h3>
+              <div className="space-y-1.5">
+                {componentResults.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between p-2 rounded-lg bg-surface text-xs">
+                    <span className="font-medium text-text-primary">{r.component_name}</span>
+                    <span className={`badge capitalize text-[10px] ${r.result === 'reusable' ? 'badge-reuse' : 'badge-recycle'}`}>
+                      {r.result}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

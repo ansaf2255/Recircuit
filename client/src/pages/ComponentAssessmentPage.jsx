@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineArrowLeft } from 'react-icons/hi';
+import { HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineArrowLeft, HiOutlineCog } from 'react-icons/hi';
 
 export default function ComponentAssessmentPage() {
   const { deviceId } = useParams();
@@ -53,18 +53,6 @@ export default function ComponentAssessmentPage() {
     };
     setAllAnswers(updated);
 
-    if (question.is_disqualifier && answer === 'yes') {
-      const filled = { ...updated };
-      questions.forEach((q) => {
-        if (!filled[compId]?.[q.id]) {
-          filled[compId] = { ...(filled[compId] || {}), [q.id]: 'no' };
-        }
-      });
-      setAllAnswers(filled);
-      moveToNextComponent(filled);
-      return;
-    }
-
     if (currentQ < questions.length - 1) {
       setCurrentQ(currentQ + 1);
     } else {
@@ -104,24 +92,25 @@ export default function ComponentAssessmentPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (submitting) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-16 h-16 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-        <p className="text-text-secondary text-lg font-medium">Analyzing components…</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+        <p className="text-text-primary text-base font-medium">Evaluating salvage components…</p>
+        <p className="text-text-secondary text-xs">Computing reusable parts viability & recycling recovery actions</p>
       </div>
     );
   }
 
   if (components.length === 0) {
     return (
-      <div className="page-container max-w-2xl text-center">
-        <p className="text-text-secondary">No components defined for this category.</p>
+      <div className="page-container max-w-2xl text-center py-16">
+        <p className="text-text-secondary text-sm">No component assessments defined for this category.</p>
       </div>
     );
   }
@@ -134,46 +123,48 @@ export default function ComponentAssessmentPage() {
   const progress = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
 
   return (
-    <div className="page-container max-w-2xl relative">
-      <div className="glow-orb w-[350px] h-[350px] bg-cyan-500/8 -top-[50px] -right-[100px]" />
-
+    <div className="page-container max-w-2xl">
       {/* Header */}
-      <div className="page-header relative z-10 animate-fade-up">
-        <h1 className="page-title text-text-primary">Component Assessment</h1>
+      <div className="page-header animate-fade-up">
+        <div className="text-xs font-semibold uppercase tracking-wider text-primary-700 bg-primary-50 border border-primary-200 px-3 py-1 rounded-full inline-block mb-2">
+          Modular Salvage Assessment
+        </div>
+        <h1 className="page-title text-text-primary">Component Integrity Diagnostics</h1>
         <p className="page-subtitle">{device?.brand} {device?.model}</p>
       </div>
 
-      {/* Component tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 relative z-10 animate-fade-up" style={{ animationDelay: '80ms' }}>
+      {/* Component navigation stepper */}
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 animate-fade-up">
         {components.map((comp, i) => {
           const isActive = i === currentComp;
           const isDone = i < currentComp;
           return (
             <div
               key={comp.id}
-              className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 border ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
                 isActive
-                  ? 'bg-primary-500/15 text-primary-400 border-primary-500/30'
+                  ? 'bg-primary-700 text-white border-primary-700 font-semibold'
                   : isDone
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                    : 'bg-surface-light text-text-muted border-border'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-white text-text-secondary border-border'
               }`}
             >
-              {isDone && <span className="mr-1">✓</span>}{comp.name}
+              {isDone && <span className="mr-1 text-emerald-600 font-bold">✓</span>}
+              {comp.name}
             </div>
           );
         })}
       </div>
 
-      {/* Progress */}
-      <div className="mb-8 relative z-10 animate-fade-up" style={{ animationDelay: '120ms' }}>
-        <div className="flex justify-between text-sm text-text-muted mb-2.5">
-          <span className="font-medium">{currentComponent?.name} — Q{currentQ + 1}/{questions.length}</span>
-          <span>{Math.round(progress)}% overall</span>
+      {/* Progress bar */}
+      <div className="mb-6 animate-fade-up">
+        <div className="flex justify-between text-xs text-text-secondary mb-2 font-medium">
+          <span>{currentComponent?.name} • Question {currentQ + 1} of {questions.length}</span>
+          <span>{Math.round(progress)}% Completed</span>
         </div>
-        <div className="w-full h-2.5 bg-surface-lighter rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-cyan-500 to-primary-500 rounded-full transition-all duration-500"
+            className="h-full bg-primary-700 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -181,34 +172,34 @@ export default function ComponentAssessmentPage() {
 
       {/* Question Card */}
       {question && (
-        <div className="glass-card p-8 sm:p-10 relative z-10 animate-fade-up" style={{ animationDelay: '160ms' }}>
-          <div className="text-sm text-primary-400 font-semibold mb-3 flex items-center gap-1.5">
-            🔧 {currentComponent?.name}
+        <div className="glass-card p-6 sm:p-8 bg-white border border-border shadow-xs animate-fade-up">
+          <div className="text-xs font-semibold text-primary-700 mb-2 flex items-center gap-1.5">
+            <HiOutlineCog className="w-4 h-4" /> {currentComponent?.name} Diagnostic
           </div>
 
           {question.is_disqualifier && (
-            <div className="mb-5 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold inline-flex items-center gap-1.5">
-              ⚠️ Critical Question
+            <div className="mb-4 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold inline-flex items-center gap-1">
+              Critical Check
             </div>
           )}
 
-          <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-10 leading-snug">
+          <h2 className="text-lg sm:text-xl font-medium text-text-primary mb-8 leading-relaxed">
             {question.text}
           </h2>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <button
               onClick={() => handleAnswer('yes')}
-              className="flex items-center justify-center gap-3 p-5 rounded-2xl border-2 border-emerald-500/25 bg-emerald-500/[0.04] hover:bg-emerald-500/15 hover:border-emerald-500/50 text-emerald-400 font-semibold text-lg transition-all duration-200 group"
+              className="flex items-center justify-center gap-2.5 p-4 rounded-2xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-base transition-colors cursor-pointer"
             >
-              <HiOutlineCheckCircle className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+              <HiOutlineCheckCircle className="w-6 h-6 text-emerald-600" />
               Yes
             </button>
             <button
               onClick={() => handleAnswer('no')}
-              className="flex items-center justify-center gap-3 p-5 rounded-2xl border-2 border-rose-500/25 bg-rose-500/[0.04] hover:bg-rose-500/15 hover:border-rose-500/50 text-rose-400 font-semibold text-lg transition-all duration-200 group"
+              className="flex items-center justify-center gap-2.5 p-4 rounded-2xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 font-semibold text-base transition-colors cursor-pointer"
             >
-              <HiOutlineXCircle className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+              <HiOutlineXCircle className="w-6 h-6 text-rose-600" />
               No
             </button>
           </div>
@@ -216,7 +207,7 @@ export default function ComponentAssessmentPage() {
           {currentQ > 0 && (
             <button
               onClick={() => setCurrentQ(currentQ - 1)}
-              className="mt-8 text-sm text-text-muted hover:text-text-secondary transition-colors flex items-center gap-1.5"
+              className="mt-6 text-xs text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1 cursor-pointer"
             >
               <HiOutlineArrowLeft className="w-3.5 h-3.5" />
               Previous question

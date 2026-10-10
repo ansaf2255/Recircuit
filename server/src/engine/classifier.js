@@ -36,67 +36,76 @@
 function classify(questions, responses, mode = 'device') {
   const answerMap = {};
   responses.forEach((r) => {
-    answerMap[r.question_id] = r.answer.toLowerCase();
+    let val = '';
+    if (typeof r.answer === 'boolean') {
+      val = r.answer ? 'yes' : 'no';
+    } else if (typeof r.answer === 'string') {
+      val = r.answer.toLowerCase().trim();
+    } else {
+      val = String(r.answer || '').toLowerCase();
+    }
+    answerMap[r.question_id] = val;
   });
 
-  // ── Step 1: Check disqualifiers ──────────────────────────────
-  const disqualifiers = questions.filter((q) => q.is_disqualifier);
-  for (const dq of disqualifiers) {
-    const ans = answerMap[dq.id];
-    const goodAns = (dq.good_answer || 'yes').toLowerCase();
-    
-    // For disqualifier questions, any answer that is NOT the good answer triggers disqualification.
-    if (ans && ans !== goodAns) {
-      const result = 'recycle';
-      const qObj = questions.find((q) => q.id === dq.id);
-      return {
-        result,
-        score: 0,
-        maxScore: 0,
-        reasoning: `Disqualified: "${qObj?.text || 'Unknown question'}" answered ${ans}. Immediate ${result} recommendation.`,
-      };
-    }
-  }
-
-  // ── Step 2: Weighted scoring ─────────────────────────────────
-  // Non-disqualifier questions: "yes" = good condition → earn the weight
-  const scorable = questions.filter((q) => !q.is_disqualifier);
   let maxScore = 0;
   let earnedScore = 0;
   const details = [];
+  let hasDisqualifier = false;
+  let disqualifierReason = '';
 
-  for (const q of scorable) {
-    maxScore += q.weight;
-    const ans = answerMap[q.id];
-    const goodAns = (q.good_answer || 'yes').toLowerCase();
-    if (ans === goodAns) {
-      earnedScore += q.weight;
-      details.push(`✓ "${q.text}" (+${q.weight})`);
+  // ── Step 1: Weighted scoring for all questions ─────────────────────────────────
+  for (const q of questions) {
+    // Only non-disqualifier questions contribute to the max/earned score.
+    // (Or we can let disqualifiers contribute, but typically they are just rules).
+    if (!q.is_disqualifier) {
+      maxScore += q.weight;
+      const ans = answerMap[q.id];
+      const goodAns = (q.good_answer || 'yes').toLowerCase();
+      if (ans === goodAns) {
+        earnedScore += q.weight;
+        details.push(`✓ "${q.text}" (+${q.weight})`);
+      } else {
+        details.push(`✗ "${q.text}" (+0)`);
+      }
     } else {
-      details.push(`✗ "${q.text}" (+0)`);
+      // It is a disqualifier question
+      const ans = answerMap[q.id];
+      const goodAns = (q.good_answer || 'yes').toLowerCase();
+      if (ans && ans !== goodAns) {
+        hasDisqualifier = true;
+        disqualifierReason = `Disqualified: "${q.text}" answered ${ans}.`;
+        details.push(`⚠️ "${q.text}" (Failed Disqualifier)`);
+      } else if (ans === goodAns) {
+        details.push(`✓ "${q.text}" (Passed Disqualifier)`);
+      }
     }
   }
 
   const pct = maxScore > 0 ? (earnedScore / maxScore) * 100 : 0;
 
-  // ── Step 3: Threshold mapping ────────────────────────────────
+  // ── Step 2: Threshold mapping & Disqualifier Application ────────────────────────────────
   let result;
   if (mode === 'component') {
     result = pct >= 50 ? 'reusable' : 'recycle';
+    if (hasDisqualifier) result = 'recycle'; // Disqualifier overrides
   } else {
     if (pct >= 80) result = 'reuse';
     else if (pct >= 60) result = 'resell';
     else if (pct >= 40) result = 'refurbish';
     else result = 'recycle';
+
+    if (hasDisqualifier) {
+      result = 'recycle'; // Disqualifier immediately sends to recycle
+    }
   }
 
   const reasoning = [
     `Score: ${earnedScore}/${maxScore} (${pct.toFixed(1)}%)`,
     `Classification: ${result.toUpperCase()}`,
-    '',
-    'Breakdown:',
+    hasDisqualifier ? `\nCritical Issue: ${disqualifierReason}` : '',
+    '\nBreakdown:',
     ...details,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 
   return { result, score: earnedScore, maxScore, reasoning };
 }

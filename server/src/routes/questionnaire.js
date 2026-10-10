@@ -30,7 +30,13 @@ router.post('/:deviceId', authenticate, async (req, res) => {
     await client.query('BEGIN');
 
     // Verify device exists and belongs to user
-    const deviceRes = await client.query('SELECT * FROM devices WHERE id = $1', [deviceId]);
+    const deviceRes = await client.query(
+      `SELECT d.*, c.name AS category_name 
+       FROM devices d 
+       JOIN categories c ON c.id = d.category_id 
+       WHERE d.id = $1`, 
+      [deviceId]
+    );
     if (!deviceRes.rows.length) {
       await client.query('ROLLBACK');
       client.release();
@@ -45,7 +51,7 @@ router.post('/:deviceId', authenticate, async (req, res) => {
 
     // Load questions for this category
     const questionsRes = await client.query(
-      'SELECT * FROM questions WHERE category_id = $1 ORDER BY is_disqualifier DESC, display_order',
+      'SELECT * FROM questions WHERE category_id = $1 ORDER BY display_order ASC',
       [device.category_id],
     );
     const questions = questionsRes.rows;
@@ -53,8 +59,10 @@ router.post('/:deviceId', authenticate, async (req, res) => {
     // ── Run the shared classification engine (rule-based expert system) ──
     const classification = classify(questions, responses, 'device');
 
+    const finalResult = classification.result;
+    const finalReasoning = classification.reasoning;
+
     // ── Persist responses ───────────────────────────────────────
-    // Clear old responses first (allow re-assessment)
     await client.query('DELETE FROM responses WHERE device_id = $1', [deviceId]);
     for (const r of responses) {
       await client.query(
@@ -66,9 +74,9 @@ router.post('/:deviceId', authenticate, async (req, res) => {
     // ── Persist classification ──────────────────────────────────
     await client.query('DELETE FROM classifications WHERE device_id = $1', [deviceId]);
     await client.query(
-      `INSERT INTO classifications (device_id, result, reasoning, score)
-       VALUES ($1,$2,$3,$4)`,
-      [deviceId, classification.result, classification.reasoning, classification.score],
+      `INSERT INTO classifications (device_id, result, reasoning, score, ai_inspection)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [deviceId, finalResult, finalReasoning, classification.score, null],
     );
 
     await client.query('COMMIT');
@@ -76,10 +84,10 @@ router.post('/:deviceId', authenticate, async (req, res) => {
 
     res.json({
       device_id: parseInt(deviceId),
-      result: classification.result,
+      result: finalResult,
       score: classification.score,
       maxScore: classification.maxScore,
-      reasoning: classification.reasoning,
+      reasoning: finalReasoning,
     });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -97,7 +105,32 @@ router.get('/:deviceId', authenticate, async (req, res) => {
       [req.params.deviceId],
     );
     if (!result.rows.length) return res.status(404).json({ error: 'No classification found' });
-    res.json(result.rows[0]);
+
+    // Fetch the detailed diagnostic responses
+    const responsesRes = await db.query(
+      `SELECT r.id, r.question_id, r.answer, q.text, q.good_answer, q.weight, q.is_disqualifier, q.display_order
+       FROM responses r
+       JOIN questions q ON q.id = r.question_id
+       WHERE r.device_id = $1
+       ORDER BY q.display_order ASC`,
+      [req.params.deviceId]
+    );
+
+    // Fetch component assessments if any exist
+    const compResultsRes = await db.query(
+      `SELECT cc.*, comp.name AS component_name
+       FROM component_classifications cc
+       JOIN components comp ON comp.id = cc.component_id
+       WHERE cc.device_id = $1
+       ORDER BY comp.name ASC`,
+      [req.params.deviceId]
+    );
+
+    res.json({
+      ...result.rows[0],
+      responses: responsesRes.rows,
+      components: compResultsRes.rows,
+    });
   } catch (err) {
     console.error('Get classification error:', err);
     res.status(500).json({ error: 'Internal server error' });

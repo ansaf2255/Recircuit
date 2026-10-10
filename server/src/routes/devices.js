@@ -47,31 +47,91 @@ router.get('/', authenticate, async (req, res) => {
 // ── GET /api/devices/available — marketplace for partners ────
 router.get('/available', authenticate, async (req, res) => {
   try {
-    const { category_id } = req.query;
+    const { category_id, search, location, lat, lng, radius_km, classification } = req.query;
     
-    // Only recyclers/refurbishers/admins can browse marketplace
-    if (req.user.role === 'seller') {
-      return res.status(403).json({ error: 'Sellers cannot browse the marketplace' });
+    const params = [req.user.id];
+    let distanceSelect = 'NULL AS distance_km';
+    const conditions = ['m.id IS NULL', 'd.user_id != $1'];
+
+    const userLat = lat && !isNaN(parseFloat(lat)) ? parseFloat(lat) : null;
+    const userLng = lng && !isNaN(parseFloat(lng)) ? parseFloat(lng) : null;
+
+    if (userLat !== null && userLng !== null) {
+      params.push(userLat, userLng);
+      const latParam = `$${params.length - 1}`;
+      const lngParam = `$${params.length}`;
+      distanceSelect = `
+        CASE 
+          WHEN d.latitude IS NOT NULL AND d.longitude IS NOT NULL THEN
+            ROUND((6371 * acos(
+              LEAST(1.0, GREATEST(-1.0,
+                cos(radians(${latParam})) * cos(radians(d.latitude)) *
+                cos(radians(d.longitude) - radians(${lngParam})) +
+                sin(radians(${latParam})) * sin(radians(d.latitude))
+              ))
+            ))::numeric, 1)
+          ELSE NULL
+        END AS distance_km
+      `;
+    }
+
+    if (category_id) {
+      params.push(category_id);
+      conditions.push(`d.category_id = $${params.length}`);
+    }
+
+    // ── Role-based marketplace visibility ──────────────────────────
+    // Recyclers ONLY see recycle electronics.
+    // Consumers (sellers) & refurbishers ONLY see reuse/resell/refurbish (other than recycle).
+    // Admin sees everything unless explicitly filtered.
+    if (req.user.role === 'recycler') {
+      conditions.push("cl.result = 'recycle'");
+    } else if (req.user.role === 'seller' || req.user.role === 'refurbisher') {
+      conditions.push("cl.result != 'recycle'");
+      if (classification && classification !== 'All' && ['reuse', 'resell', 'refurbish'].includes(classification)) {
+        params.push(classification);
+        conditions.push(`cl.result = $${params.length}`);
+      }
+    } else if (classification && classification !== 'All') {
+      params.push(classification);
+      conditions.push(`cl.result = $${params.length}`);
+    }
+
+    if (search && search.trim()) {
+      params.push(`%${search.trim().toLowerCase()}%`);
+      const searchParam = `$${params.length}`;
+      conditions.push(`(
+        LOWER(d.brand) LIKE ${searchParam} OR 
+        LOWER(d.model) LIKE ${searchParam} OR 
+        LOWER(COALESCE(d.description, '')) LIKE ${searchParam} OR
+        LOWER(COALESCE(d.location, '')) LIKE ${searchParam}
+      )`);
+    }
+
+    if (location && location.trim()) {
+      params.push(`%${location.trim().toLowerCase()}%`);
+      conditions.push(`LOWER(COALESCE(d.location, '')) LIKE $${params.length}`);
     }
 
     let sql = `
       SELECT d.*, c.name AS category_name, u.name AS user_name,
-             cl.result AS classification
+             cl.result AS classification, cl.score AS classification_score,
+             ${distanceSelect}
       FROM devices d
       JOIN categories c ON c.id = d.category_id
       JOIN users u ON u.id = d.user_id
       JOIN classifications cl ON cl.device_id = d.id
       LEFT JOIN matches m ON m.device_id = d.id
-      WHERE m.id IS NULL
+      WHERE ${conditions.join(' AND ')}
     `;
-    const params = [];
-    
-    if (category_id) {
-      params.push(category_id);
-      sql += ` AND d.category_id = $${params.length}`;
+
+    if (userLat !== null && userLng !== null && radius_km && !isNaN(parseFloat(radius_km))) {
+      sql = `SELECT * FROM (${sql}) sub WHERE sub.distance_km IS NULL OR sub.distance_km <= ${parseFloat(radius_km)} ORDER BY sub.distance_km ASC NULLS LAST, sub.created_at DESC`;
+    } else if (userLat !== null && userLng !== null) {
+      sql = `SELECT * FROM (${sql}) sub ORDER BY sub.distance_km ASC NULLS LAST, sub.created_at DESC`;
+    } else {
+      sql += ' ORDER BY d.created_at DESC';
     }
-    
-    sql += ' ORDER BY d.created_at DESC';
 
     const result = await db.query(sql, params);
     res.json(result.rows);
@@ -93,29 +153,28 @@ router.get('/:id', authenticate, async (req, res) => {
       [req.params.id],
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Device not found' });
-    const device = result.rows[0];
-    if (req.user.role === 'seller' && device.user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized to view this device' });
-    }
-    res.json(device);
+    res.json(result.rows[0]);
   } catch (err) {
     console.error('Get device error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ── POST /api/devices — create device + optional image ───────
-router.post('/', authenticate, upload.single('image'), async (req, res) => {
+// ── POST /api/devices — create device + optional images ───────
+router.post('/', authenticate, upload.array('images', 4), async (req, res) => {
   try {
-    const { category_id, brand, model, description, location } = req.body;
+    const { category_id, brand, model, description, location, latitude, longitude } = req.body;
     if (!category_id) return res.status(400).json({ error: 'category_id is required' });
 
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+    const images = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
+
+    const parsedLat = latitude && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : null;
+    const parsedLng = longitude && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : null;
 
     const result = await db.query(
-      `INSERT INTO devices (user_id, category_id, brand, model, description, location, image_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [req.user.id, category_id, brand || null, model || null, description || null, location || null, image_url],
+      `INSERT INTO devices (user_id, category_id, brand, model, description, location, latitude, longitude, images)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [req.user.id, category_id, brand || null, model || null, description || null, location || null, parsedLat, parsedLng, JSON.stringify(images)],
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -142,20 +201,25 @@ router.delete('/:id', authenticate, async (req, res) => {
 // ── PATCH /api/devices/:id — edit device details ───────────────
 router.patch('/:id', authenticate, async (req, res) => {
   try {
-    const { brand, model, description, location } = req.body;
+    const { brand, model, description, location, latitude, longitude } = req.body;
     
     // Ensure the device belongs to the user
     const check = await db.query('SELECT id FROM devices WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
     if (!check.rows.length) return res.status(404).json({ error: 'Device not found or not yours' });
+
+    const parsedLat = latitude && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : null;
+    const parsedLng = longitude && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : null;
 
     const result = await db.query(
       `UPDATE devices SET 
         brand = COALESCE($1, brand), 
         model = COALESCE($2, model), 
         description = COALESCE($3, description), 
-        location = COALESCE($4, location) 
-       WHERE id = $5 RETURNING *`,
-      [brand, model, description, location, req.params.id]
+        location = COALESCE($4, location),
+        latitude = COALESCE($5, latitude),
+        longitude = COALESCE($6, longitude)
+       WHERE id = $7 RETURNING *`,
+      [brand, model, description, location, parsedLat, parsedLng, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) {

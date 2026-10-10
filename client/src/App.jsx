@@ -10,6 +10,7 @@ import DeviceFormPage from './pages/DeviceFormPage';
 import DeviceDetailPage from './pages/DeviceDetailPage';
 import QuestionnairePage from './pages/QuestionnairePage';
 import ResultPage from './pages/ResultPage';
+import MatchPage from './pages/MatchPage';
 import ComponentAssessmentPage from './pages/ComponentAssessmentPage';
 import ComponentResultsPage from './pages/ComponentResultsPage';
 import RequestsPage from './pages/RequestsPage';
@@ -53,14 +54,24 @@ function AppRoutes() {
   return (
     <>
       <Navbar />
-      <main className={user ? 'pt-24 lg:pt-28' : ''}>
+      <main className={user ? 'pt-4 sm:pt-6 pb-12' : ''}>
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="/login" element={user ? (user.role === 'admin' ? <Navigate to="/admin" replace /> : user.role === 'recycler' ? <Navigate to="/marketplace" replace /> : <Navigate to="/" replace />) : <LoginPage />} />
 
-          <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              {user?.role === 'admin' ? (
+                <Navigate to="/admin" replace />
+              ) : user?.role === 'recycler' ? (
+                <Navigate to="/marketplace" replace />
+              ) : (
+                <DashboardPage />
+              )}
+            </ProtectedRoute>
+          } />
 
           <Route path="/devices/new" element={
-            <ProtectedRoute roles={['seller']}>
+            <ProtectedRoute roles={['seller', 'refurbisher']}>
               <DeviceFormPage />
             </ProtectedRoute>
           } />
@@ -77,6 +88,10 @@ function AppRoutes() {
             <ProtectedRoute><ResultPage /></ProtectedRoute>
           } />
 
+          <Route path="/devices/:deviceId/match" element={
+            <ProtectedRoute><MatchPage /></ProtectedRoute>
+          } />
+
           <Route path="/devices/:deviceId/components" element={
             <ProtectedRoute><ComponentAssessmentPage /></ProtectedRoute>
           } />
@@ -86,7 +101,9 @@ function AppRoutes() {
           } />
 
           <Route path="/requests" element={
-            <ProtectedRoute><RequestsPage /></ProtectedRoute>
+            <ProtectedRoute roles={['seller', 'recycler', 'refurbisher']}>
+              <RequestsPage />
+            </ProtectedRoute>
           } />
 
           <Route path="/certificate/:id" element={
@@ -94,7 +111,7 @@ function AppRoutes() {
           } />
 
           <Route path="/marketplace" element={
-            <ProtectedRoute roles={['recycler', 'refurbisher', 'admin']}>
+            <ProtectedRoute roles={['seller', 'recycler', 'refurbisher']}>
               <MarketplacePage />
             </ProtectedRoute>
           } />

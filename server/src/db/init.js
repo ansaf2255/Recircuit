@@ -46,6 +46,8 @@ CREATE TABLE questions (
     good_answer     VARCHAR(3)    NOT NULL DEFAULT 'yes' CHECK (good_answer IN ('yes','no')),
     weight          INTEGER       NOT NULL DEFAULT 0,
     is_disqualifier BOOLEAN       NOT NULL DEFAULT false,
+    section         VARCHAR(60)   NOT NULL DEFAULT 'general',
+    requires_power  BOOLEAN       NOT NULL DEFAULT false,
     display_order   INTEGER       NOT NULL DEFAULT 0
 );
 
@@ -58,7 +60,7 @@ CREATE TABLE devices (
     model           VARCHAR(120),
     description     TEXT,
     location        VARCHAR(180),
-    image_url       VARCHAR(255),
+    images          JSONB         DEFAULT '[]'::jsonb,
     created_at      TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
@@ -75,9 +77,10 @@ CREATE TABLE classifications (
     id         SERIAL PRIMARY KEY,
     device_id  INTEGER      NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
     result     VARCHAR(20)  NOT NULL CHECK (result IN ('reuse','resell','refurbish','recycle')),
-    reasoning  TEXT,
-    score      INTEGER,
-    created_at TIMESTAMPTZ  NOT NULL DEFAULT now()
+    reasoning     TEXT,
+    score         INTEGER,
+    ai_inspection JSONB        DEFAULT '{}'::jsonb,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
 -- ===================== COMPONENTS =====================

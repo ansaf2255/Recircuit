@@ -20,7 +20,7 @@ router.get('/', async (_req, res) => {
 router.get('/:id/questions', authenticate, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT * FROM questions WHERE category_id = $1 ORDER BY is_disqualifier DESC, display_order',
+      'SELECT * FROM questions WHERE category_id = $1 ORDER BY display_order ASC',
       [req.params.id],
     );
     res.json(result.rows);

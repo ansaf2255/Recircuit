@@ -24,7 +24,7 @@ router.get('/', authenticate, async (req, res) => {
     if (req.user.role === 'admin') {
       sql = `
         SELECT r.*, m.device_id, m.partner_id,
-               d.brand, d.model, c.name AS category_name, d.description, d.image_url, d.location AS device_location,
+               d.brand, d.model, c.name AS category_name, d.description, d.images, d.location AS device_location,
                seller.name AS seller_name, seller.email AS seller_email,
                partner.name AS partner_name, partner.email AS partner_email,
                cl.result AS classification,
@@ -39,28 +39,12 @@ router.get('/', authenticate, async (req, res) => {
         ORDER BY r.updated_at DESC
       `;
       params = [];
-    } else if (req.user.role === 'seller') {
-      sql = `
-        SELECT r.*, m.device_id, m.partner_id,
-               d.brand, d.model, c.name AS category_name, d.description, d.image_url, d.location AS device_location,
-               partner.name AS partner_name,
-               CASE WHEN r.status IN ('accepted', 'completed') THEN partner.email ELSE NULL END AS partner_email,
-               cl.result AS classification,
-               ${compsAgg}
-        FROM requests r
-        JOIN matches m ON m.id = r.match_id
-        JOIN devices d ON d.id = m.device_id
-        JOIN categories c ON c.id = d.category_id
-        JOIN users partner ON partner.id = m.partner_id
-        LEFT JOIN classifications cl ON cl.device_id = d.id
-        WHERE d.user_id = $1
-        ORDER BY r.updated_at DESC
-      `;
-      params = [req.user.id];
     } else {
       sql = `
-        SELECT r.*, m.device_id, m.partner_id,
-               d.brand, d.model, c.name AS category_name, d.description, d.image_url, d.location AS device_location,
+        SELECT r.*, m.device_id, m.partner_id, d.user_id AS seller_id,
+               d.brand, d.model, c.name AS category_name, d.description, d.images, d.location AS device_location,
+               partner.name AS partner_name,
+               CASE WHEN r.status IN ('accepted', 'completed') THEN partner.email ELSE NULL END AS partner_email,
                seller.name AS seller_name,
                CASE WHEN r.status IN ('accepted', 'completed') THEN seller.email ELSE NULL END AS seller_email,
                cl.result AS classification,
@@ -69,9 +53,10 @@ router.get('/', authenticate, async (req, res) => {
         JOIN matches m ON m.id = r.match_id
         JOIN devices d ON d.id = m.device_id
         JOIN categories c ON c.id = d.category_id
+        JOIN users partner ON partner.id = m.partner_id
         JOIN users seller ON seller.id = d.user_id
         LEFT JOIN classifications cl ON cl.device_id = d.id
-        WHERE m.partner_id = $1
+        WHERE d.user_id = $1 OR m.partner_id = $1
         ORDER BY r.updated_at DESC
       `;
       params = [req.user.id];

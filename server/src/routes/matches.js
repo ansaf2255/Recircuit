@@ -38,16 +38,20 @@ router.get('/:deviceId/candidates', authenticate, async (req, res) => {
       }
     }
 
-    const targetRole = device.classification === 'recycle' ? 'recycler' : 'refurbisher';
+    const targetRoles = device.classification === 'recycle' ? ['recycler'] : ['refurbisher', 'seller'];
 
-    // Find verified users (hide email)
+    // Find verified users (hide email), excluding device owner
     const candidatesRes = await db.query(
       `SELECT id, name, location, role,
-              CASE WHEN LOWER(location) = LOWER($1) THEN 0 ELSE 1 END AS distance_rank
+              CASE 
+                WHEN LOWER(COALESCE(location, '')) = LOWER($1) AND $1 != '' THEN 0
+                WHEN $1 != '' AND (POSITION(LOWER(COALESCE(location, '')) IN LOWER($1)) > 0 OR POSITION(LOWER($1) IN LOWER(COALESCE(location, ''))) > 0) THEN 1
+                ELSE 2 
+              END AS distance_rank
        FROM users
-       WHERE role = $2 AND verified = true
+       WHERE role = ANY($2) AND verified = true AND id != $3
        ORDER BY distance_rank, created_at`,
-      [device.location || '', targetRole],
+      [device.location || '', targetRoles, req.user.id],
     );
 
     res.json(candidatesRes.rows);
@@ -93,21 +97,25 @@ router.post('/:deviceId', authenticate, async (req, res) => {
       [deviceId, partner_id]
     );
     let match;
+    let requestId;
     if (existingMatch.rows.length) {
       match = existingMatch.rows[0];
+      const r = await db.query('SELECT id FROM requests WHERE match_id = $1 LIMIT 1', [match.id]);
+      requestId = r.rows[0]?.id;
     } else {
       const matchRes = await db.query(
         'INSERT INTO matches (device_id, partner_id) VALUES ($1,$2) RETURNING *',
         [deviceId, partner_id]
       );
       match = matchRes.rows[0];
-      await db.query(
-        'INSERT INTO requests (match_id, status) VALUES ($1, $2)',
+      const reqRes = await db.query(
+        'INSERT INTO requests (match_id, status) VALUES ($1, $2) RETURNING id',
         [match.id, 'pending']
       );
+      requestId = reqRes.rows[0]?.id;
     }
 
-    res.json(match);
+    res.json({ ...match, request_id: requestId });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Match already exists' });
     console.error('Match creation error:', err);
@@ -121,9 +129,7 @@ router.post('/claim/:deviceId', authenticate, async (req, res) => {
     const { deviceId } = req.params;
     const partner_id = req.user.id;
 
-    if (req.user.role === 'seller') {
-      return res.status(403).json({ error: 'Sellers cannot claim devices' });
-    }
+    // Sellers (Consumers) and Recyclers can claim devices based on marketplace logic.
 
     // Check device classification & existance
     const deviceRes = await db.query(
@@ -136,6 +142,18 @@ router.post('/claim/:deviceId', authenticate, async (req, res) => {
     if (!deviceRes.rows.length) return res.status(404).json({ error: 'Device not found' });
     const device = deviceRes.rows[0];
 
+    if (device.user_id === partner_id) {
+      return res.status(400).json({ error: 'You cannot claim your own device listing' });
+    }
+
+    // Role-based claim eligibility:
+    if (req.user.role === 'recycler' && device.classification !== 'recycle') {
+      return res.status(403).json({ error: 'Recyclers can only claim electronics marked for recycling' });
+    }
+    if ((req.user.role === 'seller' || req.user.role === 'refurbisher') && device.classification === 'recycle') {
+      return res.status(403).json({ error: 'Consumers and refurbishers can only claim reusable and refurbishable electronics' });
+    }
+
     // Check if match already exists
     const existingMatch = await db.query('SELECT id FROM matches WHERE device_id = $1', [deviceId]);
     if (existingMatch.rows.length) {
@@ -147,12 +165,12 @@ router.post('/claim/:deviceId', authenticate, async (req, res) => {
       [deviceId, partner_id]
     );
     const match = matchRes.rows[0];
-    await db.query(
-      'INSERT INTO requests (match_id, status) VALUES ($1, $2)',
+    const reqRes = await db.query(
+      'INSERT INTO requests (match_id, status) VALUES ($1, $2) RETURNING id',
       [match.id, 'pending']
     );
 
-    res.json(match);
+    res.json({ ...match, request_id: reqRes.rows[0]?.id });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Match already exists' });
     console.error('Device claim error:', err);
@@ -175,41 +193,24 @@ router.get('/', authenticate, async (req, res) => {
       WHERE cc.device_id = d.id) AS components
     `;
 
-    if (req.user.role === 'seller') {
       sql = `
-        SELECT m.*, d.brand, d.model, d.image_url, c.name AS category_name,
-               u.name AS partner_name, u.location AS partner_location,
+        SELECT m.*, d.brand, d.model, d.images, c.name AS category_name, d.description,
+               seller.name AS seller_name, d.location AS device_location,
+               partner.name AS partner_name, partner.location AS partner_location,
                r.status AS request_status, r.id AS request_id,
                cl.result AS classification,
                ${compsAgg}
         FROM matches m
         JOIN devices d ON d.id = m.device_id
         JOIN categories c ON c.id = d.category_id
-        JOIN users u ON u.id = m.partner_id
+        JOIN users partner ON partner.id = m.partner_id
+        JOIN users seller ON seller.id = d.user_id
         LEFT JOIN requests r ON r.match_id = m.id
         LEFT JOIN classifications cl ON cl.device_id = d.id
-        WHERE d.user_id = $1
+        WHERE d.user_id = $1 OR m.partner_id = $1
         ORDER BY m.created_at DESC
       `;
       params = [req.user.id];
-    } else {
-      sql = `
-        SELECT m.*, d.brand, d.model, d.image_url, c.name AS category_name, d.description,
-               u.name AS seller_name, d.location AS device_location,
-               r.status AS request_status, r.id AS request_id,
-               cl.result AS classification,
-               ${compsAgg}
-        FROM matches m
-        JOIN devices d ON d.id = m.device_id
-        JOIN categories c ON c.id = d.category_id
-        JOIN users u ON u.id = d.user_id
-        LEFT JOIN requests r ON r.match_id = m.id
-        LEFT JOIN classifications cl ON cl.device_id = d.id
-        WHERE m.partner_id = $1
-        ORDER BY m.created_at DESC
-      `;
-      params = [req.user.id];
-    }
     const result = await db.query(sql, params);
     res.json(result.rows);
   } catch (err) {
