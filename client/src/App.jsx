@@ -19,124 +19,124 @@ import MarketplacePage from './pages/MarketplacePage';
 import CertificatePage from './pages/CertificatePage';
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+ const { user, loading } = useAuth();
 
-  useEffect(() => {
-    // Reset all theme classes first
-    document.body.classList.remove('theme-seller', 'theme-partner', 'theme-recycler', 'theme-refurbisher', 'theme-admin');
-    
-    if (user) {
-      if (user.role === 'seller') {
-        document.body.classList.add('theme-seller');
-      } else if (user.role === 'admin') {
-        document.body.classList.add('theme-admin');
-      } else if (user.role === 'recycler') {
-        document.body.classList.add('theme-recycler');
-      } else if (user.role === 'refurbisher') {
-        document.body.classList.add('theme-refurbisher');
-      }
-    } else {
-      document.body.classList.add('theme-seller'); // Default
-    }
-  }, [user]);
+ useEffect(() => {
+ // Reset all theme classes first
+ document.body.classList.remove('theme-seller', 'theme-partner', 'theme-recycler', 'theme-refurbisher', 'theme-admin');
+ 
+ if (user) {
+ if (user.role === 'seller') {
+ document.body.classList.add('theme-seller');
+ } else if (user.role === 'admin') {
+ document.body.classList.add('theme-admin');
+ } else if (user.role === 'recycler') {
+ document.body.classList.add('theme-recycler');
+ } else if (user.role === 'refurbisher') {
+ document.body.classList.add('theme-refurbisher');
+ }
+ } else {
+ document.body.classList.add('theme-seller'); // Default
+ }
+ }, [user]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-surface">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
-          <p className="text-text-secondary">Loading ReCircuit…</p>
-        </div>
-      </div>
-    );
-  }
+ if (loading) {
+ return (
+ <div className="flex items-center justify-center min-h-screen bg-surface">
+ <div className="flex flex-col items-center gap-4">
+ <div className="w-16 h-16 border-4 border-brand-ghost border-t-brand rounded-full animate-spin" />
+ <p className="text-muted">Loading ReCircuit…</p>
+ </div>
+ </div>
+ );
+ }
 
-  return (
-    <>
-      <Navbar />
-      <main className={user ? 'pt-4 sm:pt-6 pb-12' : ''}>
-        <Routes>
-          <Route path="/login" element={user ? (user.role === 'admin' ? <Navigate to="/admin" replace /> : user.role === 'recycler' ? <Navigate to="/marketplace" replace /> : <Navigate to="/" replace />) : <LoginPage />} />
+ return (
+ <>
+ <Navbar />
+ <main className={user ? 'pt-4 sm:pt-6 pb-12' : ''}>
+ <Routes>
+ <Route path="/login" element={user ? (user.role === 'admin' ? <Navigate to="/admin" replace /> : user.role === 'recycler' ? <Navigate to="/marketplace" replace /> : <Navigate to="/" replace />) : <LoginPage />} />
 
-          <Route path="/" element={
-            <ProtectedRoute>
-              {user?.role === 'admin' ? (
-                <Navigate to="/admin" replace />
-              ) : user?.role === 'recycler' ? (
-                <Navigate to="/marketplace" replace />
-              ) : (
-                <DashboardPage />
-              )}
-            </ProtectedRoute>
-          } />
+ <Route path="/" element={
+ <ProtectedRoute>
+ {user?.role === 'admin' ? (
+ <Navigate to="/admin" replace />
+ ) : user?.role === 'recycler' ? (
+ <Navigate to="/marketplace" replace />
+ ) : (
+ <DashboardPage />
+ )}
+ </ProtectedRoute>
+ } />
 
-          <Route path="/devices/new" element={
-            <ProtectedRoute roles={['seller', 'refurbisher']}>
-              <DeviceFormPage />
-            </ProtectedRoute>
-          } />
+ <Route path="/devices/new" element={
+ <ProtectedRoute roles={['seller', 'refurbisher']}>
+ <DeviceFormPage />
+ </ProtectedRoute>
+ } />
 
-          <Route path="/devices/:deviceId" element={
-            <ProtectedRoute><DeviceDetailPage /></ProtectedRoute>
-          } />
+ <Route path="/devices/:deviceId" element={
+ <ProtectedRoute><DeviceDetailPage /></ProtectedRoute>
+ } />
 
-          <Route path="/devices/:deviceId/questionnaire" element={
-            <ProtectedRoute><QuestionnairePage /></ProtectedRoute>
-          } />
+ <Route path="/devices/:deviceId/questionnaire" element={
+ <ProtectedRoute><QuestionnairePage /></ProtectedRoute>
+ } />
 
-          <Route path="/devices/:deviceId/result" element={
-            <ProtectedRoute><ResultPage /></ProtectedRoute>
-          } />
+ <Route path="/devices/:deviceId/result" element={
+ <ProtectedRoute><ResultPage /></ProtectedRoute>
+ } />
 
-          <Route path="/devices/:deviceId/match" element={
-            <ProtectedRoute><MatchPage /></ProtectedRoute>
-          } />
+ <Route path="/devices/:deviceId/match" element={
+ <ProtectedRoute><MatchPage /></ProtectedRoute>
+ } />
 
-          <Route path="/devices/:deviceId/components" element={
-            <ProtectedRoute><ComponentAssessmentPage /></ProtectedRoute>
-          } />
+ <Route path="/devices/:deviceId/components" element={
+ <ProtectedRoute><ComponentAssessmentPage /></ProtectedRoute>
+ } />
 
-          <Route path="/devices/:deviceId/components/results" element={
-            <ProtectedRoute><ComponentResultsPage /></ProtectedRoute>
-          } />
+ <Route path="/devices/:deviceId/components/results" element={
+ <ProtectedRoute><ComponentResultsPage /></ProtectedRoute>
+ } />
 
-          <Route path="/requests" element={
-            <ProtectedRoute roles={['seller', 'recycler', 'refurbisher']}>
-              <RequestsPage />
-            </ProtectedRoute>
-          } />
+ <Route path="/requests" element={
+ <ProtectedRoute roles={['seller', 'recycler', 'refurbisher']}>
+ <RequestsPage />
+ </ProtectedRoute>
+ } />
 
-          <Route path="/certificate/:id" element={
-            <ProtectedRoute><CertificatePage /></ProtectedRoute>
-          } />
+ <Route path="/certificate/:id" element={
+ <ProtectedRoute><CertificatePage /></ProtectedRoute>
+ } />
 
-          <Route path="/marketplace" element={
-            <ProtectedRoute roles={['seller', 'recycler', 'refurbisher']}>
-              <MarketplacePage />
-            </ProtectedRoute>
-          } />
+ <Route path="/marketplace" element={
+ <ProtectedRoute roles={['seller', 'recycler', 'refurbisher']}>
+ <MarketplacePage />
+ </ProtectedRoute>
+ } />
 
-          <Route path="/admin" element={
-            <ProtectedRoute roles={['admin']}>
-              <AdminPage />
-            </ProtectedRoute>
-          } />
+ <Route path="/admin" element={
+ <ProtectedRoute roles={['admin']}>
+ <AdminPage />
+ </ProtectedRoute>
+ } />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </>
-  );
+ <Route path="*" element={<Navigate to="/" replace />} />
+ </Routes>
+ </main>
+ </>
+ );
 }
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </ToastProvider>
-    </BrowserRouter>
-  );
+ return (
+ <BrowserRouter>
+ <ToastProvider>
+ <AuthProvider>
+ <AppRoutes />
+ </AuthProvider>
+ </ToastProvider>
+ </BrowserRouter>
+ );
 }
