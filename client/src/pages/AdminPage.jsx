@@ -375,7 +375,7 @@ export default function AdminPage() {
 
  {/* By Category */}
  <div className="bg-surface border border-line rounded-[var(--radius-card)] p-[24px] p-6 bg-white">
- <h3 className="text-sm font-bold text-ink mb-4">Hardware Inventory by Category</h3>
+ <h3 className="text-base sm:text-lg font-bold text-ink mb-4 font-heading">Hardware Inventory by Category</h3>
  <div className="h-[240px] w-full">
  <ResponsiveContainer width="100%" height="100%">
  <BarChart data={analytics.byCategory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -391,7 +391,7 @@ export default function AdminPage() {
 
  {/* By Outcome */}
  <div className="bg-surface border border-line rounded-[var(--radius-card)] p-[24px] p-6 bg-white">
- <h3 className="text-sm font-bold text-ink mb-4">Diagnostic Classification Outcomes</h3>
+ <h3 className="text-base sm:text-lg font-bold text-ink mb-4 font-heading">Diagnostic Classification Outcomes</h3>
  <div className="flex flex-col sm:flex-row items-center gap-8">
  <div className="h-[180px] w-[180px] flex-shrink-0">
  <ResponsiveContainer width="100%" height="100%">
@@ -433,7 +433,7 @@ export default function AdminPage() {
  <div className="space-y-4 animate-fade-up">
  <div className="bg-surface border border-line rounded-[var(--radius-card)] p-[24px] p-5 bg-white border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-4">
  <div>
- <h3 className="text-base font-bold text-ink">System-Wide Circular Transactions</h3>
+ <h3 className="text-lg sm:text-xl font-bold text-ink font-heading">System-Wide Circular Transactions</h3>
  <p className="text-xs text-muted mt-0.5">
  Full administrative oversight of device pickups, logistics partners, and certificate issuance
  </p>
@@ -775,7 +775,7 @@ export default function AdminPage() {
  Component Diagnostic Inspector
  </span>
  </div>
- <h2 className="text-ink font-bold text-base sm:text-lg mt-1">
+ <h2 className="text-ink font-bold text-xl sm:text-2xl mt-1 font-heading">
  Diagnostic Criteria for {components.find(c => c.id === selectedComp)?.name || 'Selected Component'}
  </h2>
  <p className="text-muted text-xs mt-0.5">

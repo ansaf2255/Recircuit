@@ -71,7 +71,7 @@ export default function CertificatePage() {
                 <HiOutlineBadgeCheck className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand to-[#0c533d] tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand to-[#0c533d] tracking-tight font-heading">
                   Certificate of Sustainability
                 </h1>
                 <p className="text-xs text-brand/80 mt-0.5 font-medium">
@@ -94,7 +94,7 @@ export default function CertificatePage() {
               <HiOutlineGlobeAlt className="w-4 h-4 text-brand/60" />
             </div>
             
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight mb-4">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-ink tracking-tight mb-4 font-heading">
               {request.seller_name}
             </h2>
             

@@ -8,7 +8,7 @@
  * component-level assessment, avoiding code duplication.
  *
  * Algorithm:
- *   1. If ANY disqualifier question is answered "yes" → immediate worst outcome
+ *   1. A disqualifier triggers when the answer differs from good_answer → immediate worst outcome
  *      (device → "recycle", component → "recycle").
  *   2. Otherwise, sum the weights of all questions answered "yes" (positive
  *      condition = good) to get the total score.

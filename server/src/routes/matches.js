@@ -91,6 +91,25 @@ router.post('/:deviceId', authenticate, async (req, res) => {
       }
     }
 
+    // Verify partner is verified and has appropriate role
+    const partnerRes = await db.query(
+      'SELECT id, role, verified FROM users WHERE id = $1',
+      [partner_id]
+    );
+    if (!partnerRes.rows.length) {
+      return res.status(400).json({ error: 'Partner not found' });
+    }
+    const partner = partnerRes.rows[0];
+
+    if (!partner.verified) {
+      return res.status(403).json({ error: 'Partner must be a verified user' });
+    }
+
+    const expectedRole = device.classification === 'recycle' ? 'recycler' : 'refurbisher';
+    if (partner.role !== expectedRole) {
+      return res.status(403).json({ error: `Partner must have role '${expectedRole}' for this device classification` });
+    }
+
     // Check existing match
     const existingMatch = await db.query(
       'SELECT id FROM matches WHERE device_id = $1 AND partner_id = $2',
@@ -125,53 +144,71 @@ router.post('/:deviceId', authenticate, async (req, res) => {
 
 // ── POST /api/matches/claim/:deviceId — partner claims a device ──
 router.post('/claim/:deviceId', authenticate, async (req, res) => {
+  const client = await db.pool.connect();
   try {
     const { deviceId } = req.params;
     const partner_id = req.user.id;
 
-    // Sellers (Consumers) and Recyclers can claim devices based on marketplace logic.
+    await client.query('BEGIN');
 
-    // Check device classification & existance
-    const deviceRes = await db.query(
+    // Check device classification & existence with row lock
+    const deviceRes = await client.query(
       `SELECT d.*, cl.result AS classification
        FROM devices d
        LEFT JOIN classifications cl ON cl.device_id = d.id
-       WHERE d.id = $1`,
+       WHERE d.id = $1
+       FOR UPDATE OF d`,
       [deviceId]
     );
-    if (!deviceRes.rows.length) return res.status(404).json({ error: 'Device not found' });
+    if (!deviceRes.rows.length) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Device not found' });
+    }
     const device = deviceRes.rows[0];
 
     if (device.user_id === partner_id) {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(400).json({ error: 'You cannot claim your own device listing' });
     }
 
     // Role-based claim eligibility:
     if (req.user.role === 'recycler' && device.classification !== 'recycle') {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(403).json({ error: 'Recyclers can only claim electronics marked for recycling' });
     }
     if ((req.user.role === 'seller' || req.user.role === 'refurbisher') && device.classification === 'recycle') {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(403).json({ error: 'Consumers and refurbishers can only claim reusable and refurbishable electronics' });
     }
 
-    // Check if match already exists
-    const existingMatch = await db.query('SELECT id FROM matches WHERE device_id = $1', [deviceId]);
+    // Check if match already exists (under device row lock)
+    const existingMatch = await client.query('SELECT id FROM matches WHERE device_id = $1', [deviceId]);
     if (existingMatch.rows.length) {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(409).json({ error: 'Device has already been claimed or matched' });
     }
 
-    const matchRes = await db.query(
+    const matchRes = await client.query(
       'INSERT INTO matches (device_id, partner_id) VALUES ($1,$2) RETURNING *',
       [deviceId, partner_id]
     );
     const match = matchRes.rows[0];
-    const reqRes = await db.query(
+    const reqRes = await client.query(
       'INSERT INTO requests (match_id, status) VALUES ($1, $2) RETURNING id',
       [match.id, 'pending']
     );
 
+    await client.query('COMMIT');
+    client.release();
     res.json({ ...match, request_id: reqRes.rows[0]?.id });
   } catch (err) {
+    await client.query('ROLLBACK');
+    client.release();
     if (err.code === '23505') return res.status(409).json({ error: 'Match already exists' });
     console.error('Device claim error:', err);
     res.status(500).json({ error: 'Internal server error' });

@@ -179,7 +179,7 @@ export default function QuestionnairePage() {
  </div>
  )}
 
- <h2 className="text-xl sm:text-2xl font-medium text-ink mb-8 leading-snug">
+ <h2 className="text-2xl sm:text-3xl font-bold text-ink mb-8 leading-snug font-heading">
  {currentQuestion.text}
  </h2>
 

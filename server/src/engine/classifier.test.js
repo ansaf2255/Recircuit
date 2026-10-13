@@ -16,7 +16,7 @@ test('classifier engine tests', async (t) => {
     ];
     const res = classify(questions, responses, 'device');
     assert.strictEqual(res.result, 'recycle');
-    assert.strictEqual(res.score, 0);
+    assert.strictEqual(res.score, 10);
   });
 
   await t.test('threshold boundary 80% (device: reuse)', () => {

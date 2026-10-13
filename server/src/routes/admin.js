@@ -214,6 +214,9 @@ router.patch('/users/:id/verify', async (req, res) => {
 
 router.delete('/users/:id', async (req, res) => {
   try {
+    if (parseInt(req.params.id, 10) === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
     const result = await db.query('DELETE FROM users WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'User not found' });
     res.json({ message: 'User deleted' });

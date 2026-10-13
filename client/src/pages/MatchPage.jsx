@@ -132,7 +132,7 @@ export default function MatchPage() {
  <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center mx-auto mb-3">
  <HiOutlineUser className="w-6 h-6 text-muted" />
  </div>
- <h2 className="text-base font-bold text-ink mb-1">No verified partners in this area yet</h2>
+ <h2 className="text-xl font-bold text-ink mb-1.5 font-heading">No verified partners in this area yet</h2>
  <p className="text-muted text-xs max-w-sm mx-auto mb-4">
  You can explore our open marketplace to let regional refurbishers and certified recyclers browse your device.
  </p>

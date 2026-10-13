@@ -52,8 +52,8 @@ export default function LoginPage() {
  <div className="w-12 h-12 rounded-2xl bg-brand flex items-center justify-center text-surface mb-3 shadow-xs">
  <HiOutlineChip className="w-6 h-6" />
  </div>
- <h1 className="text-2xl font-bold text-ink tracking-tight">ReCircuit</h1>
- <p className="text-muted mt-1 text-center text-xs">
+ <h1 className="text-3xl sm:text-4xl font-extrabold text-ink tracking-tight font-heading">ReCircuit</h1>
+ <p className="text-muted mt-1.5 text-center text-sm">
  {isRegister ? 'Register your hardware enterprise account' : 'Sign in with your ReCircuit account'}
  </p>
  </div>

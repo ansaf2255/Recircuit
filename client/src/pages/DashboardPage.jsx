@@ -192,7 +192,7 @@ export default function DashboardPage() {
  </div>
  <div>
  <div className="flex items-center gap-2">
- <h2 className="text-base sm:text-lg font-bold text-ink">Circular Environmental Impact</h2>
+ <h2 className="text-xl sm:text-2xl font-bold text-ink font-heading tracking-tight">Circular Environmental Impact</h2>
  <span className="badge bg-brand-tint text-brand border-brand-ghost text-xs">
  Verified Metric
  </span>
@@ -276,7 +276,7 @@ export default function DashboardPage() {
  <div className="w-14 h-14 rounded-full bg-surface flex items-center justify-center mx-auto mb-3">
  <HiOutlineDeviceMobile className="w-7 h-7 text-muted" />
  </div>
- <h2 className="text-base font-bold text-ink mb-1">No hardware items found</h2>
+ <h2 className="text-xl font-bold text-ink mb-1.5 font-heading">No hardware items found</h2>
  <p className="text-muted text-xs max-w-sm mx-auto mb-5">
  {searchQuery || statusFilter !== 'All'
  ? 'No listed devices match your current filters.'
@@ -397,7 +397,7 @@ export default function DashboardPage() {
  >
  <HiOutlineX className="w-5 h-5" />
  </button>
- <h2 className="text-lg font-bold text-ink mb-1">
+ <h2 className="text-xl sm:text-2xl font-bold text-ink mb-1.5 font-heading">
  Edit Device Listing
  </h2>
  <p className="text-xs text-muted mb-5">

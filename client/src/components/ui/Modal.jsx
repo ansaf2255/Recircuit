@@ -28,7 +28,7 @@ export function Modal({ isOpen, onClose, title, children, className = '' }) {
  aria-labelledby="modal-title"
  >
  <div className="flex items-center justify-between p-6 border-b border-line">
- <h2 id="modal-title" className="text-xl font-semibold text-ink">{title}</h2>
+ <h2 id="modal-title" className="text-2xl font-bold text-ink font-heading tracking-tight">{title}</h2>
  <button 
  onClick={onClose}
  className="p-2 text-body-muted hover:bg-placeholder rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand"

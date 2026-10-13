@@ -78,19 +78,44 @@ router.patch('/:id', authenticate, async (req, res) => {
 
     // Get current request
     const reqRes = await db.query(
-      `SELECT r.*, m.partner_id, d.user_id AS seller_id
+      `SELECT r.*, m.partner_id, d.user_id AS seller_id, cl.result AS classification
        FROM requests r 
        JOIN matches m ON m.id = r.match_id 
        JOIN devices d ON d.id = m.device_id 
+       LEFT JOIN classifications cl ON cl.device_id = d.id
        WHERE r.id = $1`,
       [id]
     );
     if (!reqRes.rows.length) return res.status(404).json({ error: 'Request not found' });
     const currentReq = reqRes.rows[0];
 
+    const isSeller = req.user.id === currentReq.seller_id;
+    const isPartner = req.user.id === currentReq.partner_id;
+    const isAdmin = req.user.role === 'admin';
+
     // Ownership: partner, seller, or admin can update status
-    if (req.user.role !== 'admin' && req.user.id !== currentReq.partner_id && req.user.id !== currentReq.seller_id) {
+    if (!isAdmin && !isPartner && !isSeller) {
       return res.status(403).json({ error: 'Not authorized to update this request' });
+    }
+
+    // Role-based acceptance rules:
+    if (status === 'accepted') {
+      const isRecycle = currentReq.classification === 'recycle';
+      // In recycling, only partner/recycler (or admin) can accept pickup request
+      if (isRecycle && isSeller && !isPartner && !isAdmin) {
+        return res.status(403).json({ error: 'Only the assigned recycling partner or admin can accept this pickup request' });
+      }
+      // In purchase (reuse/resell/refurbish), only the seller (or admin) can accept the purchase order
+      if (!isRecycle && isPartner && !isSeller && !isAdmin) {
+        return res.status(403).json({ error: 'Only the device seller or admin can accept this purchase order' });
+      }
+    }
+
+    // A seller cannot complete a request (only partner/recycler or admin may complete and issue certificate)
+    if (isSeller && !isPartner && !isAdmin) {
+      if (status === 'completed') {
+        return res.status(403).json({ error: 'Only the partner or admin can complete a request and issue a certificate' });
+      }
     }
 
     // State machine validation: pending -> accepted|cancelled, accepted -> completed|cancelled
@@ -102,7 +127,7 @@ router.patch('/:id', authenticate, async (req, res) => {
       'cancelled': []
     };
 
-    if (!validTransitions[currentState].includes(status)) {
+    if (!validTransitions[currentState] || !validTransitions[currentState].includes(status)) {
       return res.status(400).json({ error: `Cannot transition status from '${currentState}' to '${status}'` });
     }
 

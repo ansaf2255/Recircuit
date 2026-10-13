@@ -108,7 +108,7 @@ export default function ResultPage() {
  <Icon className="w-8 h-8" />
  </div>
 
- <h1 className="text-2xl sm:text-3xl font-bold text-ink mb-2 tracking-tight">{config.title}</h1>
+ <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold text-ink mb-3 tracking-tight font-heading leading-tight">{config.title}</h1>
  <p className="text-muted text-xs sm:text-sm mb-5 max-w-md mx-auto leading-relaxed">{config.description}</p>
 
  <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full ${config.badge}`}>
@@ -125,7 +125,7 @@ export default function ResultPage() {
 
  {/* Reasoning */}
  <div className="bg-surface border border-line rounded-[var(--radius-card)] p-[24px] p-6 sm:p-8 mb-6 relative z-10 animate-fade-up">
- <h2 className="text-lg font-bold text-ink mb-3">Assessment Reasoning</h2>
+ <h2 className="text-xl sm:text-2xl font-bold text-ink mb-3 font-heading">Assessment Reasoning</h2>
  <pre className="text-sm text-muted whitespace-pre-wrap font-mono bg-surface p-4 rounded-xl leading-relaxed border border-line">
  {classification.reasoning}
  </pre>

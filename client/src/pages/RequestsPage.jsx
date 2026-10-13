@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Link } from 'react-router-dom';
 import { 
  HiOutlineClock, 
@@ -28,6 +29,7 @@ const statusConfig = {
 
 export default function RequestsPage() {
  const { user } = useAuth();
+ const { addToast } = useToast();
  const [activeTab, setActiveTab] = useState('devices');
  const [requests, setRequests] = useState([]);
  const [componentOrders, setComponentOrders] = useState([]);
@@ -60,8 +62,12 @@ export default function RequestsPage() {
  await api.patch(`/requests/${requestId}`, { status });
  const res = await api.get('/requests');
  setRequests(res.data);
+ if (status === 'accepted') addToast('Pickup request accepted successfully!');
+ else if (status === 'completed') addToast('Pickup request marked completed!');
+ else if (status === 'cancelled') addToast('Pickup request cancelled.');
  } catch (err) {
  console.error(err);
+ addToast(err.response?.data?.error || 'Failed to update request status.');
  }
  };
 
@@ -147,7 +153,7 @@ export default function RequestsPage() {
  <div className="w-14 h-14 rounded-full bg-surface flex items-center justify-center mx-auto mb-3">
  <HiOutlineClock className="w-7 h-7 text-muted" />
  </div>
- <h2 className="text-base font-bold text-ink mb-1">No active device pickups</h2>
+ <h2 className="text-xl font-bold text-ink mb-1.5 font-heading">No active device pickups</h2>
  <p className="text-muted text-xs max-w-sm mx-auto mb-5">
  Submit a device for assessment or claim an available device from the regional marketplace.
  </p>
@@ -162,6 +168,32 @@ export default function RequestsPage() {
  const StatusIcon = config.icon;
  const reusableParts = req.components?.filter(c => c.result === 'reusable') || [];
  const recycleParts = req.components?.filter(c => c.result === 'recycle') || [];
+
+ const isRecycle = req.classification === 'recycle';
+ const isPurchase = !isRecycle;
+ const isSeller = user?.id === req.seller_id;
+ const isBuyerOrPartner = user?.id === req.partner_id;
+ const isAdmin = user?.role === 'admin';
+
+ // Acceptance rights:
+ // - For purchase: ONLY the seller (device owner) or admin can accept the purchase order.
+ //   (The buyer who purchased the electronic must NEVER see "Accept Pickup Request"!)
+ // - For recycling: ONLY the assigned recycling partner or admin can accept the pickup request.
+ const canAccept = (isPurchase && (isSeller || isAdmin)) || (isRecycle && (isBuyerOrPartner || isAdmin));
+ const canCancel = isSeller || isBuyerOrPartner || isAdmin;
+
+ let displayStatusLabel = config.label;
+ if (req.status === 'pending') {
+   if (isPurchase) {
+     displayStatusLabel = isSeller ? 'Incoming Order' : 'Order Placed';
+   } else {
+     displayStatusLabel = isSeller ? 'Pickup Requested' : 'Incoming Pickup';
+   }
+ } else if (req.status === 'accepted') {
+   if (isPurchase) {
+     displayStatusLabel = 'Order Accepted';
+   }
+ }
 
  return (
  <div key={req.id} className="bg-surface border border-line rounded-[var(--radius-card)] p-[24px] overflow-hidden bg-white animate-fade-up border border-line" style={{ animationDelay: `${i * 30}ms` }}>
@@ -188,7 +220,7 @@ export default function RequestsPage() {
  </div>
  <span className={`badge flex-shrink-0 ${config.color}`}>
  <StatusIcon className="w-3.5 h-3.5" />
- {config.label}
+ {displayStatusLabel}
  </span>
  </div>
 
@@ -209,27 +241,56 @@ export default function RequestsPage() {
 
  {/* Partner / Seller Contact Box */}
  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted mb-3 p-3 bg-surface rounded-xl border border-line">
- {req.partner_name && (
- <div>
- <span className="text-muted">Matched Partner: </span>
- <strong className="text-ink font-medium">{req.partner_name}</strong>
- {req.partner_email && (
- <a href={`mailto:${req.partner_email}`} className="ml-1 text-brand hover:underline">
- ({req.partner_email})
- </a>
- )}
- </div>
- )}
- {req.seller_name && (
- <div>
- <span className="text-muted">Device Owner: </span>
- <strong className="text-ink font-medium">{req.seller_name}</strong>
- {req.seller_email && (
- <a href={`mailto:${req.seller_email}`} className="ml-1 text-brand hover:underline">
- ({req.seller_email})
- </a>
- )}
- </div>
+ {isPurchase ? (
+   <>
+     {req.seller_name && (
+       <div>
+         <span className="text-muted">Seller: </span>
+         <strong className="text-ink font-medium">{req.seller_name}</strong>
+         {req.seller_email && (
+           <a href={`mailto:${req.seller_email}`} className="ml-1 text-brand hover:underline">
+             ({req.seller_email})
+           </a>
+         )}
+       </div>
+     )}
+     {req.partner_name && (
+       <div>
+         <span className="text-muted">Buyer: </span>
+         <strong className="text-ink font-medium">{req.partner_name}</strong>
+         {req.partner_email && (
+           <a href={`mailto:${req.partner_email}`} className="ml-1 text-brand hover:underline">
+             ({req.partner_email})
+           </a>
+         )}
+       </div>
+     )}
+   </>
+ ) : (
+   <>
+     {req.partner_name && (
+       <div>
+         <span className="text-muted">{user?.role === 'recycler' ? 'Assigned Facility: ' : 'Matched Partner: '}</span>
+         <strong className="text-ink font-medium">{req.partner_name}</strong>
+         {req.partner_email && (
+           <a href={`mailto:${req.partner_email}`} className="ml-1 text-brand hover:underline">
+             ({req.partner_email})
+           </a>
+         )}
+       </div>
+     )}
+     {req.seller_name && (
+       <div>
+         <span className="text-muted">Device Owner: </span>
+         <strong className="text-ink font-medium">{req.seller_name}</strong>
+         {req.seller_email && (
+           <a href={`mailto:${req.seller_email}`} className="ml-1 text-brand hover:underline">
+             ({req.seller_email})
+           </a>
+         )}
+       </div>
+     )}
+   </>
  )}
  </div>
 
@@ -255,30 +316,58 @@ export default function RequestsPage() {
  </div>
 
  {/* Action buttons */}
- <div className="flex gap-2 mt-4 pt-4 border-t border-line">
- {req.status === 'pending' && user.id === req.seller_id && (
- <>
- <button
- onClick={() => updateRequestStatus(req.id, 'accepted')}
- className="px-4 py-2 bg-brand-tint border border-brand-ghost text-brand hover:bg-brand-tint rounded-full text-xs font-semibold transition-colors cursor-pointer"
- >
- Accept Pickup Request
- </button>
- <button
- onClick={() => updateRequestStatus(req.id, 'cancelled')}
- className="px-4 py-2 bg-danger-bg border border-danger-bg text-danger-text hover:bg-danger-bg rounded-full text-xs font-semibold transition-colors cursor-pointer"
- >
- Decline
- </button>
- </>
+ <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-line">
+ {req.status === 'pending' && (
+   <>
+     {canAccept ? (
+       <>
+         <button
+           onClick={() => updateRequestStatus(req.id, 'accepted')}
+           className="px-4 py-2 bg-brand-tint border border-brand-ghost text-brand hover:bg-brand-tint rounded-full text-xs font-semibold transition-colors cursor-pointer"
+         >
+           {isPurchase ? 'Accept Order' : 'Accept Pickup Request'}
+         </button>
+         <button
+           onClick={() => updateRequestStatus(req.id, 'cancelled')}
+           className="px-4 py-2 bg-danger-bg border border-danger-bg text-danger-text hover:bg-danger-bg rounded-full text-xs font-semibold transition-colors cursor-pointer"
+         >
+           Decline
+         </button>
+       </>
+     ) : canCancel ? (
+       <div className="flex items-center gap-3 w-full justify-between sm:w-auto sm:justify-start">
+         <span className="text-xs text-muted font-medium italic">
+           {isPurchase 
+             ? 'Order placed — awaiting seller confirmation' 
+             : 'Pickup requested — awaiting recycler confirmation'}
+         </span>
+         <button
+           onClick={() => updateRequestStatus(req.id, 'cancelled')}
+           className="px-4 py-2 bg-danger-bg border border-danger-bg text-danger-text hover:bg-danger-bg rounded-full text-xs font-semibold transition-colors cursor-pointer"
+         >
+           {isPurchase ? 'Cancel Order' : 'Cancel Request'}
+         </button>
+       </div>
+     ) : null}
+   </>
  )}
  {req.status === 'accepted' && (
- <button
- onClick={() => updateRequestStatus(req.id, 'completed')}
- className="btn-primary !text-xs !py-2 cursor-pointer"
- >
- Mark Completed & Issue Certificate
- </button>
+   <>
+     {(isBuyerOrPartner || isAdmin) ? (
+       <button
+         onClick={() => updateRequestStatus(req.id, 'completed')}
+         className="btn-primary !text-xs !py-2 cursor-pointer"
+       >
+         {isPurchase ? 'Mark as Received & Completed' : 'Mark Completed & Issue Certificate'}
+       </button>
+     ) : (
+       <span className="text-xs text-muted font-medium italic">
+         {isPurchase 
+           ? 'Order accepted — preparing handover/delivery' 
+           : 'Pickup scheduled — logistics partner assigned'}
+       </span>
+     )}
+   </>
  )}
  {req.status === 'completed' && (
  <Link 
@@ -306,7 +395,7 @@ export default function RequestsPage() {
  <div className="w-14 h-14 rounded-full bg-surface flex items-center justify-center mx-auto mb-3">
  <HiOutlineChip className="w-7 h-7 text-muted" />
  </div>
- <h2 className="text-base font-bold text-ink mb-1">No component orders yet</h2>
+ <h2 className="text-xl font-bold text-ink mb-1.5 font-heading">No component orders yet</h2>
  <p className="text-muted text-xs max-w-sm mx-auto mb-5">
  Browse tested reusable components harvested from certified devices in our salvage marketplace.
  </p>
@@ -393,7 +482,7 @@ export default function RequestsPage() {
  <div className="w-14 h-14 rounded-full bg-surface flex items-center justify-center mx-auto mb-3">
  <HiOutlineInbox className="w-7 h-7 text-muted" />
  </div>
- <h2 className="text-base font-bold text-ink mb-1">No incoming component orders</h2>
+ <h2 className="text-xl font-bold text-ink mb-1.5 font-heading">No incoming component orders</h2>
  <p className="text-muted text-xs max-w-sm mx-auto mb-5">
  When buyers claim reusable components harvested from your assessed devices, they will appear here for shipping fulfillment.
  </p>

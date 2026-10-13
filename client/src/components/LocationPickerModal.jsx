@@ -247,7 +247,7 @@ export default function LocationPickerModal({
  {/* Header */}
  <div className="px-6 py-4.5 border-b border-line flex items-center justify-between">
  <div>
- <h2 className="text-xl font-medium text-ink">Choose Location</h2>
+ <h2 className="text-2xl font-bold text-ink font-heading tracking-tight">Choose Location</h2>
  <p className="text-xs text-muted mt-0.5">
  Search your neighborhood or drag the marker to your precise area
  </p>

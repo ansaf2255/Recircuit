@@ -183,7 +183,7 @@ export default function ComponentAssessmentPage() {
  </div>
  )}
 
- <h2 className="text-lg sm:text-xl font-medium text-ink mb-8 leading-relaxed">
+ <h2 className="text-xl sm:text-2xl font-bold text-ink mb-8 leading-relaxed font-heading">
  {question.text}
  </h2>
 

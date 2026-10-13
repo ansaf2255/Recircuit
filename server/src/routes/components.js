@@ -255,16 +255,17 @@ router.post('/:id/claim', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'You cannot claim your own component' });
     }
 
-    if (item.status === 'claimed' || item.status === 'sold') {
-      return res.status(409).json({ error: 'This component has already been claimed' });
-    }
-
     const updated = await db.query(
       `UPDATE component_classifications 
-       SET status = 'claimed', buyer_id = $1 
-       WHERE id = $2 RETURNING *`,
-      [req.user.id, id]
+       SET status = 'claimed', buyer_id = $2 
+       WHERE id = $1 AND result = 'reusable' AND COALESCE(status, 'available') = 'available' AND buyer_id IS NULL
+       RETURNING *`,
+      [id, req.user.id]
     );
+
+    if (!updated.rows.length) {
+      return res.status(409).json({ error: 'This component has already been claimed or is unavailable' });
+    }
 
     res.json({
       message: `Successfully requested ${item.component_name} from ${item.brand} ${item.model}`,
@@ -311,6 +312,25 @@ router.patch('/:id/listing', authenticate, async (req, res) => {
     const { id } = req.params;
     const { price, status } = req.body;
 
+    const allowedListingStatuses = ['available', 'claimed', 'dispatched', 'delivered', 'cancelled', 'sold'];
+
+    if (price === undefined && status === undefined) {
+      return res.status(400).json({ error: 'Price or status must be provided' });
+    }
+
+    if (price !== undefined) {
+      const numPrice = Number(price);
+      if (price === null || price === '' || typeof price === 'boolean' || isNaN(numPrice) || numPrice < 0) {
+        return res.status(400).json({ error: 'Price must be a non-negative number' });
+      }
+    }
+
+    if (status !== undefined) {
+      if (!allowedListingStatuses.includes(status)) {
+        return res.status(400).json({ error: `Invalid status. Must be one of: ${allowedListingStatuses.join(', ')}` });
+      }
+    }
+
     const check = await db.query(
       `SELECT cc.id FROM component_classifications cc
        JOIN devices d ON d.id = cc.device_id
@@ -327,7 +347,7 @@ router.patch('/:id/listing', authenticate, async (req, res) => {
         price = COALESCE($1, price),
         status = COALESCE($2, status)
        WHERE id = $3 RETURNING *`,
-      [price !== undefined ? price : null, status || null, id]
+      [price !== undefined ? Number(price) : null, status !== undefined ? status : null, id]
     );
 
     res.json(updated.rows[0]);
@@ -368,10 +388,12 @@ router.patch('/:id/order-status', authenticate, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['available', 'claimed', 'dispatched', 'delivered', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
-    }
+    const allowedTransitions = {
+      'claimed': ['dispatched', 'cancelled'],
+      'dispatched': ['delivered', 'cancelled'],
+      'delivered': [],
+      'cancelled': []
+    };
 
     const check = await db.query(
       `SELECT cc.*, d.user_id AS seller_id
@@ -386,13 +408,46 @@ router.patch('/:id/order-status', authenticate, async (req, res) => {
     }
 
     const item = check.rows[0];
-    if (item.seller_id !== req.user.id && item.buyer_id !== req.user.id && req.user.role !== 'admin') {
+    const isSeller = item.seller_id === req.user.id;
+    const isBuyer = item.buyer_id === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isSeller && !isBuyer && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized to update this component order' });
+    }
+
+    const currentStatus = item.status;
+    const validNext = allowedTransitions[currentStatus];
+
+    if (!validNext || !validNext.includes(status)) {
+      return res.status(400).json({ error: `Cannot transition order status from '${currentStatus}' to '${status}'` });
+    }
+
+    // Role-specific rules:
+    // Seller or admin may dispatch; buyer cannot dispatch
+    if (status === 'dispatched') {
+      if (!isSeller && !isAdmin) {
+        return res.status(403).json({ error: 'Only the seller or admin may dispatch an order' });
+      }
+    }
+
+    // Cancel: buyer may cancel while claimed; seller or admin may cancel while claimed or dispatched (UI supports seller cancel on both)
+    if (status === 'cancelled') {
+      if (currentStatus === 'dispatched' && !isSeller && !isAdmin) {
+        return res.status(403).json({ error: 'Buyers cannot cancel an order that has already been dispatched' });
+      }
+    }
+
+    // Delivery confirmation: buyer may confirm delivery from dispatched; seller and admin also permitted (UI has Mark Delivered for seller)
+    if (status === 'delivered') {
+      if (!isBuyer && !isSeller && !isAdmin) {
+        return res.status(403).json({ error: 'Not authorized to confirm delivery' });
+      }
     }
 
     let updateSql = `UPDATE component_classifications SET status = $1 WHERE id = $2 RETURNING *`;
     let params = [status, id];
-    if (status === 'available' || status === 'cancelled') {
+    if (status === 'cancelled') {
       updateSql = `UPDATE component_classifications SET status = $1, buyer_id = NULL WHERE id = $2 RETURNING *`;
     }
 

@@ -82,7 +82,7 @@ export default function DeviceDetailPage() {
  if (!device) {
  return (
  <div className="page-container max-w-xl text-center py-16">
- <h2 className="text-lg font-bold text-ink">Device Not Found</h2>
+ <h2 className="text-2xl font-bold text-ink">Device Not Found</h2>
  <p className="text-xs text-muted mt-1">This listing may have been removed or claimed.</p>
  <Link to="/marketplace" className="btn-primary !text-xs !py-2 mt-4 inline-flex">
  Back to Marketplace
@@ -148,7 +148,7 @@ export default function DeviceDetailPage() {
 
  {/* Description & Overview */}
  <div className="bg-surface border border-line rounded-[var(--radius-card)] p-[24px] p-6 bg-white">
- <h2 className="text-sm font-bold text-ink uppercase tracking-wider mb-3">
+ <h2 className="text-base sm:text-lg font-bold text-ink mb-3 font-heading">
  Listing Description
  </h2>
  <p className="text-sm text-muted leading-relaxed">
@@ -188,7 +188,7 @@ export default function DeviceDetailPage() {
  <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
  Hardware Identification
  </span>
- <h1 className="text-xl font-bold text-ink leading-tight mt-0.5">
+ <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-ink leading-tight tracking-tight mt-1 font-heading">
  {device.brand} {device.model}
  </h1>
  </div>

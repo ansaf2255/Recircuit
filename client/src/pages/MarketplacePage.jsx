@@ -550,7 +550,7 @@ export default function MarketplacePage() {
  <div className="w-16 h-16 rounded-full bg-page flex items-center justify-center mx-auto mb-4">
  <HiOutlineShoppingCart className="w-8 h-8 text-muted" />
  </div>
- <h2 className="text-lg font-bold text-ink mb-1">
+ <h2 className="text-xl sm:text-2xl font-bold text-ink mb-1.5 font-heading">
  {user?.role === 'recycler' ? 'No recyclable devices available' : 'No matching reusable devices'}
  </h2>
  <p className="text-muted text-sm max-w-sm mx-auto mb-6">
@@ -685,7 +685,7 @@ export default function MarketplacePage() {
  <div className="w-16 h-16 rounded-full bg-page flex items-center justify-center mx-auto mb-4">
  <HiOutlineChip className="w-8 h-8 text-muted" />
  </div>
- <h2 className="text-lg font-bold text-ink mb-1">No salvage components found</h2>
+ <h2 className="text-xl sm:text-2xl font-bold text-ink mb-1.5 font-heading">No salvage components found</h2>
  <p className="text-muted text-sm max-w-sm mx-auto mb-6">
  When recyclable devices undergo component assessments, tested reusable parts appear here for refurbishing resale.
  </p>
@@ -805,7 +805,7 @@ export default function MarketplacePage() {
  {assessingDevice.classification}
  </span>
  </div>
- <h2 className="text-lg font-bold text-ink mt-1">
+ <h2 className="text-xl sm:text-2xl font-bold text-ink mt-1.5 font-heading">
  {assessingDevice.brand} {assessingDevice.model}
  </h2>
  <p className="text-xs text-muted mt-0.5">
